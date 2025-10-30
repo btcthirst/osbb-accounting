@@ -101,7 +101,7 @@ func (a *App) Initialize() error {
 
 	// Створюємо Fyne додаток
 	a.fyneApp = app.NewWithID(a.config.AppID)
-	a.fyneApp.Settings().SetTheme(&customTheme{})
+	//a.fyneApp.Settings().SetTheme(&customTheme{})
 
 	// Створюємо головне вікно
 	a.window = a.fyneApp.NewWindow(a.config.AppName)
@@ -199,22 +199,22 @@ type customTheme struct{}
 
 // Color implements fyne.Theme.
 func (c *customTheme) Color(fyne.ThemeColorName, fyne.ThemeVariant) color.Color {
-	panic("unimplemented")
+	panic("unimplemented c")
 }
 
 // Font implements fyne.Theme.
 func (c *customTheme) Font(fyne.TextStyle) fyne.Resource {
-	panic("unimplemented")
+	panic("unimplemented f")
 }
 
 // Icon implements fyne.Theme.
 func (c *customTheme) Icon(fyne.ThemeIconName) fyne.Resource {
-	panic("unimplemented")
+	panic("unimplemented i")
 }
 
 // Size implements fyne.Theme.
 func (c *customTheme) Size(fyne.ThemeSizeName) float32 {
-	panic("unimplemented")
+	panic("unimplemented s")
 }
 
 // Реалізація інтерфейсу fyne.Theme буде додана пізніше
