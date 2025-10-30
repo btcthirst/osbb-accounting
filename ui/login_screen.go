@@ -138,9 +138,18 @@ func (s *LoginScreen) clearFields() {
 
 // setUIEnabled вмикає/вимикає UI елементи.
 func (s *LoginScreen) setUIEnabled(enabled bool) {
-	s.usernameEntry.Disabled = !enabled
+	/*s.usernameEntry.Disable = !enabled
 	s.passwordEntry.Disabled = !enabled
-	s.loginButton.Disabled = !enabled
+	s.loginButton.Disabled = !enabled*/
+	if enabled {
+		s.usernameEntry.Disable()
+		s.passwordEntry.Disable()
+		s.loginButton.Disable()
+	} else {
+		s.usernameEntry.Enable()
+		s.passwordEntry.Enable()
+		s.loginButton.Enable()
+	}
 
 	if enabled {
 		s.window.Canvas().Focus(s.usernameEntry)
