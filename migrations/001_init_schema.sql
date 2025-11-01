@@ -40,18 +40,6 @@ CREATE INDEX IF NOT EXISTS idx_users_active ON users(is_active);
 -- Композитний індекс для швидкого пошуку активних користувачів за роллю
 CREATE INDEX IF NOT EXISTS idx_users_role_active ON users(role, is_active);
 
--- Вставка дефолтного адміністратора
--- Username: admin
--- Password: admin123 (ВАЖЛИВО: змінити після першого входу!)
--- BCrypt хеш для "admin123" з cost=12
-INSERT INTO users (username, hashed_password, role, full_name, is_active)
-VALUES (
-    'admin',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIpPVd.3Lu',
-    'admin',
-    'Системний Адміністратор',
-    1
-);
-
--- ВАЖЛИВО: Після першого запуску системи змініть пароль адміністратора!
--- Цей дефолтний обліковий запис створений тільки для початкового налаштування.
+-- ВАЖЛИВО: Дефолтний адміністратор НЕ створюється тут
+-- Він буде створений програмно при першому запуску
+-- Це забезпечує правильне хешування пароля через BCrypt з Go

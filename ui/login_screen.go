@@ -95,32 +95,22 @@ func (s *LoginScreen) handleLogin() {
 		return
 	}
 
-	// Вимикаємо UI під час аутентифікації
-	s.setUIEnabled(false)
+	// Виконуємо аутентифікацію (синхронно для простоти в MVP)
+	user, err := s.authService.Authenticate(username, password)
 
-	// Виконуємо аутентифікацію в окремій горутині
-	go func() {
-		user, err := s.authService.Authenticate(username, password)
+	if err != nil {
+		// Помилка аутентифікації
+		s.showError("Невірне ім'я користувача або пароль")
+		return
+	}
 
-		// Повертаємося в головний потік для оновлення UI
-		s.window.Canvas().Focus(nil)
+	// Успішний вхід
+	s.clearFields()
 
-		if err != nil {
-			// Помилка аутентифікації
-			s.setUIEnabled(true)
-			s.showError("Невірне ім'я користувача або пароль")
-			return
-		}
-
-		// Успішний вхід
-		s.clearFields()
-		s.setUIEnabled(true)
-
-		// Викликаємо callback з даними користувача
-		if s.onLoginSuccess != nil {
-			s.onLoginSuccess(user)
-		}
-	}()
+	// Викликаємо callback з даними користувача
+	if s.onLoginSuccess != nil {
+		s.onLoginSuccess(user)
+	}
 }
 
 // showError відображає повідомлення про помилку.
@@ -134,30 +124,6 @@ func (s *LoginScreen) showError(message string) {
 func (s *LoginScreen) clearFields() {
 	s.usernameEntry.SetText("")
 	s.passwordEntry.SetText("")
-}
-
-// setUIEnabled вмикає/вимикає UI елементи.
-func (s *LoginScreen) setUIEnabled(enabled bool) {
-	/*s.usernameEntry.Disable = !enabled
-	s.passwordEntry.Disabled = !enabled
-	s.loginButton.Disabled = !enabled*/
-	if enabled {
-		s.usernameEntry.Disable()
-		s.passwordEntry.Disable()
-		s.loginButton.Disable()
-	} else {
-		s.usernameEntry.Enable()
-		s.passwordEntry.Enable()
-		s.loginButton.Enable()
-	}
-
-	if enabled {
-		s.window.Canvas().Focus(s.usernameEntry)
-	}
-
-	s.usernameEntry.Refresh()
-	s.passwordEntry.Refresh()
-	s.loginButton.Refresh()
 }
 
 // Render повертає Fyne контейнер з UI екрану входу.
@@ -212,10 +178,14 @@ func (s *LoginScreen) Render() fyne.CanvasObject {
 		),
 	)
 
-	// Встановлюємо фокус на поле username при відображенні
-	s.window.Canvas().Focus(s.usernameEntry)
-
 	return formContainer
+}
+
+// SetFocus встановлює фокус на поле username після відображення екрану.
+// Викликається після того, як контент вже доданий до canvas.
+func (s *LoginScreen) SetFocus() {
+	// Використовуємо невелику затримку для гарантії, що елемент вже в canvas
+	s.window.Canvas().Focus(s.usernameEntry)
 }
 
 // ShowPasswordChangeDialog відображає діалог зміни пароля.

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // DBConfig містить конфігурацію для підключення до SQLite БД.
@@ -77,6 +78,12 @@ func InitDatabase(config *DBConfig) (*sql.DB, error) {
 	if err := runMigrations(db, config.MigrationsPath); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("помилка виконання міграцій: %w", err)
+	}
+
+	// Крок 6: Створюємо дефолтного адміністратора, якщо користувачів немає
+	if err := ensureDefaultAdmin(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("помилка створення адміністратора: %w", err)
 	}
 
 	return db, nil
@@ -178,4 +185,61 @@ func CloseDatabase(db *sql.DB) error {
 		return nil
 	}
 	return db.Close()
+}
+
+// ensureDefaultAdmin створює дефолтного адміністратора, якщо користувачів немає.
+func ensureDefaultAdmin(db *sql.DB) error {
+	// Перевіряємо, чи є користувачі в БД
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("помилка перевірки користувачів: %w", err)
+	}
+
+	// Якщо користувачі вже є, нічого не робимо
+	if count > 0 {
+		return nil
+	}
+
+	fmt.Println("📝 Створення дефолтного адміністратора...")
+
+	// Імпортуємо bcrypt для хешування
+	password := "admin123"
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return fmt.Errorf("помилка хешування пароля: %w", err)
+	}
+
+	// Створюємо адміністратора
+	query := `
+		INSERT INTO users (username, hashed_password, role, full_name, is_active)
+		VALUES (?, ?, ?, ?, ?)
+	`
+
+	_, err = db.Exec(query, "admin", hashedPassword, "admin", "Системний Адміністратор", true)
+	if err != nil {
+		return fmt.Errorf("помилка створення адміністратора: %w", err)
+	}
+
+	fmt.Println("✓ Дефолтний адміністратор створений")
+	fmt.Println("  Ім'я користувача: admin")
+	fmt.Println("  Пароль: admin123")
+	fmt.Println("  ⚠️ ВАЖЛИВО: Змініть пароль після першого входу!")
+
+	return nil
+}
+
+// hashPassword створює BCrypt хеш з пароля.
+// Винесено в окрему функцію для уникнення циклічних імпортів.
+func hashPassword(password string) (string, error) {
+	// Використовуємо той самий cost, що і в AuthService
+	const bcryptCost = 12
+
+	// Імпортуємо bcrypt локально
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	if err != nil {
+		return "", err
+	}
+
+	return string(hashedBytes), nil
 }
