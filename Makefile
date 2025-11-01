@@ -7,3 +7,15 @@ build:
 
 run:
 	${mask}
+
+clean:
+	go clean -cache
+
+tests:	# Запуск всіх тестів	
+	go test ./...
+
+tests-c:	# Тести з покриттям
+	go test -cover ./...
+
+tests-p:	# Тести конкретного пакету
+	go test ./service

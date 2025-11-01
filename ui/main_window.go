@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"osbb-accounting/domain"
+	"osbb-accounting/repository"
 	"osbb-accounting/service"
 
 	"fyne.io/fyne/v2"
@@ -24,6 +25,9 @@ type MainWindow struct {
 
 	// authService - сервіс для операцій з користувачами
 	authService *service.AuthService
+
+	// apartmentRepo - репозиторій для роботи з квартирами
+	apartmentRepo repository.ApartmentRepository
 
 	// onLogout - callback для виходу з системи
 	onLogout func()

@@ -425,26 +425,3 @@ func (r *SQLiteUserRepository) DeletePermanently(id int) error {
 
 	return nil
 }
-
-// isUniqueConstraintError перевіряє, чи є помилка порушенням унікальності.
-// Для SQLite це перевірка на "UNIQUE constraint failed".
-func isUniqueConstraintError(err error) bool {
-	return err != nil && (err.Error() == "UNIQUE constraint failed: users.username" ||
-		contains(err.Error(), "UNIQUE"))
-}
-
-// contains - допоміжна функція для перевірки підстроки.
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
-			containsInside(s, substr)))
-}
-
-func containsInside(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}

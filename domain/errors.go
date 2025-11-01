@@ -33,3 +33,30 @@ var (
 	// ErrAccessDenied повертається при недостатніх правах доступу
 	ErrAccessDenied = errors.New("доступ заборонено")
 )
+
+// Помилки валідації для сутності Apartment.
+var (
+	// ErrApartmentNumberRequired повертається при порожньому номері квартири
+	ErrApartmentNumberRequired = errors.New("номер квартири є обов'язковим")
+
+	// ErrInvalidFloor повертається при невалідному номері поверху
+	ErrInvalidFloor = errors.New("номер поверху не може бути від'ємним")
+
+	// ErrInvalidArea повертається при невалідній площі
+	ErrInvalidArea = errors.New("площа квартири має бути більше 0")
+
+	// ErrInvalidRooms повертається при невалідній кількості кімнат
+	ErrInvalidRooms = errors.New("кількість кімнат не може бути від'ємною")
+
+	// ErrOwnerNameRequired повертається при порожньому імені власника
+	ErrOwnerNameRequired = errors.New("ім'я власника є обов'язковим")
+
+	// ErrInvalidResidentsCount повертається при невалідній кількості мешканців
+	ErrInvalidResidentsCount = errors.New("кількість мешканців не може бути від'ємною")
+
+	// ErrApartmentNotFound повертається, коли квартиру не знайдено
+	ErrApartmentNotFound = errors.New("квартиру не знайдено")
+
+	// ErrApartmentAlreadyExists повертається при спробі створити квартиру з існуючим номером
+	ErrApartmentAlreadyExists = errors.New("квартира з таким номером вже існує")
+)

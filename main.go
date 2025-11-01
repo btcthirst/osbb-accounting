@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"image/color"
 	"log"
 	"osbb-accounting/config"
 	"osbb-accounting/domain"
@@ -22,8 +21,9 @@ type App struct {
 	config *config.AppConfig
 
 	// Data Access Layer
-	db       *sql.DB
-	userRepo repository.UserRepository
+	db            *sql.DB
+	userRepo      repository.UserRepository
+	apartmentRepo repository.ApartmentRepository
 
 	// Business Logic Layer
 	authService *service.AuthService
@@ -139,6 +139,9 @@ func (a *App) showLoginScreen() {
 
 	a.window.SetContent(loginScreen.Render())
 	a.window.SetTitle(a.config.AppName + " - Вхід")
+
+	// Встановлюємо фокус ПІСЛЯ того, як контент додано до canvas
+	loginScreen.SetFocus()
 }
 
 // onLoginSuccess викликається після успішного входу користувача.
@@ -195,27 +198,7 @@ func (a *App) cleanup() {
 }
 
 // customTheme - кастомна тема для додатку (опціонально).
-type customTheme struct{}
-
-// Color implements fyne.Theme.
-func (c *customTheme) Color(fyne.ThemeColorName, fyne.ThemeVariant) color.Color {
-	panic("unimplemented c")
-}
-
-// Font implements fyne.Theme.
-func (c *customTheme) Font(fyne.TextStyle) fyne.Resource {
-	panic("unimplemented f")
-}
-
-// Icon implements fyne.Theme.
-func (c *customTheme) Icon(fyne.ThemeIconName) fyne.Resource {
-	panic("unimplemented i")
-}
-
-// Size implements fyne.Theme.
-func (c *customTheme) Size(fyne.ThemeSizeName) float32 {
-	panic("unimplemented s")
-}
+//type customTheme struct{}
 
 // Реалізація інтерфейсу fyne.Theme буде додана пізніше
 // для кастомізації кольорів та шрифтів
