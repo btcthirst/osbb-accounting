@@ -83,8 +83,12 @@ func (a *App) Initialize() error {
 
 	log.Printf("✓ База даних ініціалізована: %s", a.config.DBPath)
 
-	// Створюємо репозиторій користувачів
+	// Створюємо репозиторії
 	a.userRepo = sqlite.NewSQLiteUserRepository(db)
+	log.Printf("✓ UserRepository створено")
+
+	a.apartmentRepo = sqlite.NewSQLiteApartmentRepository(db)
+	log.Printf("✓ ApartmentRepository створено")
 
 	// ============================================================
 	// КРОК 3: Ініціалізація Business Logic Layer
@@ -166,6 +170,7 @@ func (a *App) showMainWindow() {
 		a.window,
 		a.currentUser,
 		a.authService,
+		a.apartmentRepo,
 		a.onLogout,
 	)
 

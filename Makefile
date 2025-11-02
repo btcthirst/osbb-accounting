@@ -3,9 +3,14 @@ app := osbb-accounting
 mask := ./${dir}/${app}
 
 build:
-	go build -o ${mask}
+	go build -o ${mask} .
 
 run:
+	${mask}
+
+new:
+	rm -rf ~/.osbb-accounting/
+	go build -o ${mask} .
 	${mask}
 
 clean:

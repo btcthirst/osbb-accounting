@@ -34,6 +34,17 @@ func NewApartmentsScreen(
 	repo repository.ApartmentRepository,
 	currentUser *domain.User,
 ) *ApartmentsScreen {
+	// КРИТИЧНО: Перевірка вхідних параметрів
+	if repo == nil {
+		panic("КРИТИЧНА ПОМИЛКА: ApartmentRepository не може бути nil!")
+	}
+	if window == nil {
+		panic("КРИТИЧНА ПОМИЛКА: Window не може бути nil!")
+	}
+	if currentUser == nil {
+		panic("КРИТИЧНА ПОМИЛКА: CurrentUser не може бути nil!")
+	}
+
 	screen := &ApartmentsScreen{
 		window:      window,
 		repo:        repo,
@@ -165,9 +176,15 @@ func (s *ApartmentsScreen) createStatsCard() *widget.Card {
 
 // loadApartments завантажує список квартир з БД.
 func (s *ApartmentsScreen) loadApartments() {
+	// Перевірка на nil репозиторій
+	if s.repo == nil {
+		dialog.ShowError(fmt.Errorf("помилка: репозиторій квартир не ініціалізовано"), s.window)
+		return
+	}
+
 	apartments, err := s.repo.FindAll()
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		dialog.ShowError(fmt.Errorf("помилка завантаження квартир: %w", err), s.window)
 		return
 	}
 

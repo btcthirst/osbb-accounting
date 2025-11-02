@@ -85,18 +85,24 @@ func (r *SQLiteApartmentRepository) FindByID(id int) (*domain.Apartment, error) 
 	`
 
 	apartment := &domain.Apartment{}
+
+	// Nullable поля
+	var ownerEmail sql.NullString
+	var notes sql.NullString
+	var entrance sql.NullInt64
+
 	err := r.db.QueryRow(query, id).Scan(
 		&apartment.ID,
 		&apartment.ApartmentNumber,
 		&apartment.Floor,
-		&apartment.Entrance,
+		&entrance,
 		&apartment.Area,
 		&apartment.Rooms,
 		&apartment.OwnerName,
 		&apartment.OwnerPhone,
-		&apartment.OwnerEmail,
+		&ownerEmail,
 		&apartment.ResidentsCount,
-		&apartment.Notes,
+		&notes,
 		&apartment.IsActive,
 		&apartment.CreatedAt,
 		&apartment.UpdatedAt,
@@ -107,6 +113,20 @@ func (r *SQLiteApartmentRepository) FindByID(id int) (*domain.Apartment, error) 
 			return nil, domain.ErrApartmentNotFound
 		}
 		return nil, err
+	}
+
+	// Конвертуємо nullable поля
+	if entrance.Valid {
+		entranceValue := int(entrance.Int64)
+		apartment.Entrance = &entranceValue
+	}
+
+	if ownerEmail.Valid {
+		apartment.OwnerEmail = ownerEmail.String
+	}
+
+	if notes.Valid {
+		apartment.Notes = notes.String
 	}
 
 	return apartment, nil
@@ -124,18 +144,24 @@ func (r *SQLiteApartmentRepository) FindByNumber(apartmentNumber string) (*domai
 	`
 
 	apartment := &domain.Apartment{}
+
+	// Nullable поля
+	var ownerEmail sql.NullString
+	var notes sql.NullString
+	var entrance sql.NullInt64
+
 	err := r.db.QueryRow(query, apartmentNumber).Scan(
 		&apartment.ID,
 		&apartment.ApartmentNumber,
 		&apartment.Floor,
-		&apartment.Entrance,
+		&entrance,
 		&apartment.Area,
 		&apartment.Rooms,
 		&apartment.OwnerName,
 		&apartment.OwnerPhone,
-		&apartment.OwnerEmail,
+		&ownerEmail,
 		&apartment.ResidentsCount,
-		&apartment.Notes,
+		&notes,
 		&apartment.IsActive,
 		&apartment.CreatedAt,
 		&apartment.UpdatedAt,
@@ -146,6 +172,20 @@ func (r *SQLiteApartmentRepository) FindByNumber(apartmentNumber string) (*domai
 			return nil, domain.ErrApartmentNotFound
 		}
 		return nil, err
+	}
+
+	// Конвертуємо nullable поля
+	if entrance.Valid {
+		entranceValue := int(entrance.Int64)
+		apartment.Entrance = &entranceValue
+	}
+
+	if ownerEmail.Valid {
+		apartment.OwnerEmail = ownerEmail.String
+	}
+
+	if notes.Valid {
+		apartment.Notes = notes.String
 	}
 
 	return apartment, nil
@@ -456,18 +496,24 @@ func (r *SQLiteApartmentRepository) scanApartments(rows *sql.Rows) ([]*domain.Ap
 
 	for rows.Next() {
 		apartment := &domain.Apartment{}
+
+		// Nullable поля
+		var ownerEmail sql.NullString
+		var notes sql.NullString
+		var entrance sql.NullInt64
+
 		err := rows.Scan(
 			&apartment.ID,
 			&apartment.ApartmentNumber,
 			&apartment.Floor,
-			&apartment.Entrance,
+			&entrance,
 			&apartment.Area,
 			&apartment.Rooms,
 			&apartment.OwnerName,
 			&apartment.OwnerPhone,
-			&apartment.OwnerEmail,
+			&ownerEmail,
 			&apartment.ResidentsCount,
-			&apartment.Notes,
+			&notes,
 			&apartment.IsActive,
 			&apartment.CreatedAt,
 			&apartment.UpdatedAt,
@@ -475,6 +521,21 @@ func (r *SQLiteApartmentRepository) scanApartments(rows *sql.Rows) ([]*domain.Ap
 		if err != nil {
 			return nil, err
 		}
+
+		// Конвертуємо nullable поля
+		if entrance.Valid {
+			entranceValue := int(entrance.Int64)
+			apartment.Entrance = &entranceValue
+		}
+
+		if ownerEmail.Valid {
+			apartment.OwnerEmail = ownerEmail.String
+		}
+
+		if notes.Valid {
+			apartment.Notes = notes.String
+		}
+
 		apartments = append(apartments, apartment)
 	}
 

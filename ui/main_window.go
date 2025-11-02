@@ -59,6 +59,7 @@ type MenuItem struct {
 //   - window: головне вікно Fyne
 //   - user: авторизований користувач
 //   - authService: сервіс аутентифікації
+//   - apartmentRepo: репозиторій квартир
 //   - onLogout: callback для виходу
 //
 // Повертає:
@@ -67,13 +68,20 @@ func NewMainWindow(
 	window fyne.Window,
 	user *domain.User,
 	authService *service.AuthService,
+	apartmentRepo repository.ApartmentRepository,
 	onLogout func(),
 ) *MainWindow {
+	// Діагностика: перевірка параметрів
+	if apartmentRepo == nil {
+		panic("КРИТИЧНА ПОМИЛКА в NewMainWindow: apartmentRepo == nil!")
+	}
+
 	mw := &MainWindow{
-		window:      window,
-		currentUser: user,
-		authService: authService,
-		onLogout:    onLogout,
+		window:        window,
+		currentUser:   user,
+		authService:   authService,
+		apartmentRepo: apartmentRepo,
+		onLogout:      onLogout,
 	}
 
 	mw.initUI()
@@ -359,7 +367,17 @@ func (mw *MainWindow) showDashboard() {
 }
 
 func (mw *MainWindow) showApartments() {
-	mw.setContent(mw.createPlaceholder("Квартири", "Модуль управління квартирами буде реалізований наступним"))
+	// Перевірка на nil
+	if mw.apartmentRepo == nil {
+		dialog.ShowError(
+			fmt.Errorf("помилка: репозиторій квартир не ініціалізовано"),
+			mw.window,
+		)
+		return
+	}
+
+	screen := NewApartmentsScreen(mw.window, mw.apartmentRepo, mw.currentUser)
+	mw.setContent(screen.Render())
 }
 
 func (mw *MainWindow) showPayments() {
