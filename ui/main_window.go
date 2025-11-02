@@ -26,6 +26,9 @@ type MainWindow struct {
 	// authService - сервіс для операцій з користувачами
 	authService *service.AuthService
 
+	// userService - сервіс для управління користувачами
+	userService *service.UserService
+
 	// apartmentRepo - репозиторій для роботи з квартирами
 	apartmentRepo repository.ApartmentRepository
 
@@ -69,6 +72,7 @@ func NewMainWindow(
 	user *domain.User,
 	authService *service.AuthService,
 	apartmentRepo repository.ApartmentRepository,
+	userService *service.UserService,
 	onLogout func(),
 ) *MainWindow {
 	// Діагностика: перевірка параметрів
@@ -81,6 +85,7 @@ func NewMainWindow(
 		currentUser:   user,
 		authService:   authService,
 		apartmentRepo: apartmentRepo,
+		userService:   userService,
 		onLogout:      onLogout,
 	}
 
@@ -393,7 +398,14 @@ func (mw *MainWindow) showGeneralReport() {
 }
 
 func (mw *MainWindow) showUsers() {
-	mw.setContent(mw.createPlaceholder("Користувачі", "Модуль управління користувачами буде реалізований наступним"))
+	//mw.setContent(mw.createPlaceholder("Користувачі", "Модуль управління користувачами буде реалізований наступним"))
+	// Перевірка на nil
+	if mw.userService == nil {
+		dialog.ShowError(fmt.Errorf("помилка: сервіс користувачів не ініціалізовано"), mw.window)
+		return
+	}
+	screen := NewUsersScreen(mw.window, mw.userService, mw.currentUser)
+	mw.setContent(screen.Render())
 }
 
 func (mw *MainWindow) showSettings() {

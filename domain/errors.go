@@ -32,6 +32,9 @@ var (
 
 	// ErrAccessDenied повертається при недостатніх правах доступу
 	ErrAccessDenied = errors.New("доступ заборонено")
+
+	// ErrCannotDeleteSelf повертається при спробі видалити самого себе
+	ErrCannotDeleteSelf = errors.New("не можна видалити власний обліковий запис")
 )
 
 // Помилки валідації для сутності Apartment.
