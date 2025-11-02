@@ -26,8 +26,9 @@ type App struct {
 	apartmentRepo repository.ApartmentRepository
 
 	// Business Logic Layer
-	authService *service.AuthService
-	userService *service.UserService
+	authService      *service.AuthService
+	userService      *service.UserService
+	apartmentService *service.ApartmentService
 
 	// Поточний авторизований користувач
 	currentUser *domain.User
@@ -97,8 +98,10 @@ func (a *App) Initialize() error {
 
 	// Створюємо сервіс аутентифікації
 	a.authService = service.NewAuthService(a.userRepo)
-	// Створюємо сервіс користувачів
+
+	// Створюємо сервіс управління користувачами
 	a.userService = service.NewUserService(a.userRepo, a.authService)
+	a.apartmentService = service.NewApartmentService(a.apartmentRepo, a.userRepo)
 
 	log.Printf("✓ Сервіси ініціалізовані")
 
@@ -170,30 +173,18 @@ func (a *App) onLoginSuccess(user *domain.User) {
 // showMainWindow відображає головне вікно додатку.
 func (a *App) showMainWindow() {
 	// Додаємо перевірку на nil
-	if a.apartmentRepo == nil {
-		log.Fatal("❌ КРИТИЧНА ПОМИЛКА: ApartmentRepository не ініціалізовано!")
+	if a.apartmentService == nil {
+		log.Fatal("❌ КРИТИЧНА ПОМИЛКА: ApartmentService не ініціалізовано!")
 	}
 
-	log.Printf("✓ Створення головного вікна (ApartmentRepo: %v)", a.apartmentRepo != nil)
-
-	if a.userRepo == nil {
-		log.Fatal("❌ КРИТИЧНА ПОМИЛКА: UserRepo не ініціалізовано!") // потрібно UserService перевіряємо чи ініціалізовано UserRepo
-	}
-
-	log.Printf("✓ Створення головного вікна (UserRepo: %v)", a.userRepo != nil)
-
-	if a.userService == nil {
-		log.Fatal("❌ КРИТИЧНА ПОМИЛКА: UserService не ініціалізовано!")
-	}
-
-	log.Printf("✓ Створення головного вікна (UserService: %v)", a.userService != nil)
+	log.Printf("✓ Створення головного вікна (ApartmentService: %v)", a.apartmentService != nil)
 
 	mainWindow := ui.NewMainWindow(
 		a.window,
 		a.currentUser,
 		a.authService,
-		a.apartmentRepo,
 		a.userService,
+		a.apartmentService,
 		a.onLogout,
 	)
 

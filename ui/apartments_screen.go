@@ -3,7 +3,7 @@ package ui
 import (
 	"fmt"
 	"osbb-accounting/domain"
-	"osbb-accounting/repository"
+	"osbb-accounting/service"
 	"strconv"
 
 	"fyne.io/fyne/v2"
@@ -15,9 +15,9 @@ import (
 
 // ApartmentsScreen представляє екран управління квартирами.
 type ApartmentsScreen struct {
-	window      fyne.Window
-	repo        repository.ApartmentRepository
-	currentUser *domain.User
+	window           fyne.Window
+	apartmentService *service.ApartmentService
+	currentUser      *domain.User
 
 	// UI елементи
 	apartmentsList *widget.List
@@ -31,12 +31,12 @@ type ApartmentsScreen struct {
 // NewApartmentsScreen створює новий екран управління квартирами.
 func NewApartmentsScreen(
 	window fyne.Window,
-	repo repository.ApartmentRepository,
+	apartmentService *service.ApartmentService,
 	currentUser *domain.User,
 ) *ApartmentsScreen {
 	// КРИТИЧНО: Перевірка вхідних параметрів
-	if repo == nil {
-		panic("КРИТИЧНА ПОМИЛКА: ApartmentRepository не може бути nil!")
+	if apartmentService == nil {
+		panic("КРИТИЧНА ПОМИЛКА: ApartmentService не може бути nil!")
 	}
 	if window == nil {
 		panic("КРИТИЧНА ПОМИЛКА: Window не може бути nil!")
@@ -46,10 +46,10 @@ func NewApartmentsScreen(
 	}
 
 	screen := &ApartmentsScreen{
-		window:      window,
-		repo:        repo,
-		currentUser: currentUser,
-		apartments:  []*domain.Apartment{},
+		window:           window,
+		apartmentService: apartmentService,
+		currentUser:      currentUser,
+		apartments:       []*domain.Apartment{},
 	}
 
 	screen.initUI()
@@ -159,7 +159,7 @@ func (s *ApartmentsScreen) createToolbar() *fyne.Container {
 
 // createStatsCard створює картку зі статистикою.
 func (s *ApartmentsScreen) createStatsCard() *widget.Card {
-	stats, err := s.repo.GetStatistics()
+	stats, err := s.apartmentService.GetStatistics(s.currentUser.ID)
 	if err != nil {
 		return widget.NewCard("", "", widget.NewLabel("Помилка завантаження статистики"))
 	}
@@ -176,13 +176,13 @@ func (s *ApartmentsScreen) createStatsCard() *widget.Card {
 
 // loadApartments завантажує список квартир з БД.
 func (s *ApartmentsScreen) loadApartments() {
-	// Перевірка на nil репозиторій
-	if s.repo == nil {
-		dialog.ShowError(fmt.Errorf("помилка: репозиторій квартир не ініціалізовано"), s.window)
+	// Перевірка на nil сервіс
+	if s.apartmentService == nil {
+		dialog.ShowError(fmt.Errorf("помилка: сервіс квартир не ініціалізовано"), s.window)
 		return
 	}
 
-	apartments, err := s.repo.FindAll()
+	apartments, err := s.apartmentService.GetAllApartments(s.currentUser.ID)
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("помилка завантаження квартир: %w", err), s.window)
 		return
@@ -204,7 +204,7 @@ func (s *ApartmentsScreen) filterApartments(query string) {
 		IsActive:    boolPtr(true),
 	}
 
-	apartments, err := s.repo.FindByFilter(filter)
+	apartments, err := s.apartmentService.SearchApartments(s.currentUser.ID, filter)
 	if err != nil {
 		dialog.ShowError(err, s.window)
 		return
@@ -285,7 +285,7 @@ func (s *ApartmentsScreen) showAddDialog() {
 				return
 			}
 
-			if err := s.repo.Save(apt); err != nil {
+			if err := s.apartmentService.CreateApartment(s.currentUser.ID, apt); err != nil {
 				dialog.ShowError(err, s.window)
 				return
 			}
@@ -314,7 +314,7 @@ func (s *ApartmentsScreen) showEditDialog(apt *domain.Apartment) {
 				return
 			}
 
-			if err := s.repo.Update(&editApt); err != nil {
+			if err := s.apartmentService.UpdateApartment(s.currentUser.ID, &editApt); err != nil {
 				dialog.ShowError(err, s.window)
 				return
 			}
@@ -440,7 +440,7 @@ func (s *ApartmentsScreen) confirmDelete(apt *domain.Apartment) {
 				return
 			}
 
-			if err := s.repo.Deactivate(apt.ID); err != nil {
+			if err := s.apartmentService.DeleteApartment(s.currentUser.ID, apt.ID); err != nil {
 				dialog.ShowError(err, s.window)
 				return
 			}

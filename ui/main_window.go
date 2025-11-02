@@ -3,7 +3,6 @@ package ui
 import (
 	"fmt"
 	"osbb-accounting/domain"
-	"osbb-accounting/repository"
 	"osbb-accounting/service"
 
 	"fyne.io/fyne/v2"
@@ -29,8 +28,8 @@ type MainWindow struct {
 	// userService - сервіс для управління користувачами
 	userService *service.UserService
 
-	// apartmentRepo - репозиторій для роботи з квартирами
-	apartmentRepo repository.ApartmentRepository
+	// apartmentService - сервіс для управління квартирами
+	apartmentService *service.ApartmentService
 
 	// onLogout - callback для виходу з системи
 	onLogout func()
@@ -62,7 +61,8 @@ type MenuItem struct {
 //   - window: головне вікно Fyne
 //   - user: авторизований користувач
 //   - authService: сервіс аутентифікації
-//   - apartmentRepo: репозиторій квартир
+//   - userService: сервіс управління користувачами
+//   - apartmentService: сервіс управління квартирами
 //   - onLogout: callback для виходу
 //
 // Повертає:
@@ -71,22 +71,22 @@ func NewMainWindow(
 	window fyne.Window,
 	user *domain.User,
 	authService *service.AuthService,
-	apartmentRepo repository.ApartmentRepository,
 	userService *service.UserService,
+	apartmentService *service.ApartmentService,
 	onLogout func(),
 ) *MainWindow {
 	// Діагностика: перевірка параметрів
-	if apartmentRepo == nil {
-		panic("КРИТИЧНА ПОМИЛКА в NewMainWindow: apartmentRepo == nil!")
+	if apartmentService == nil {
+		panic("КРИТИЧНА ПОМИЛКА в NewMainWindow: apartmentService == nil!")
 	}
 
 	mw := &MainWindow{
-		window:        window,
-		currentUser:   user,
-		authService:   authService,
-		apartmentRepo: apartmentRepo,
-		userService:   userService,
-		onLogout:      onLogout,
+		window:           window,
+		currentUser:      user,
+		authService:      authService,
+		userService:      userService,
+		apartmentService: apartmentService,
+		onLogout:         onLogout,
 	}
 
 	mw.initUI()
@@ -373,15 +373,15 @@ func (mw *MainWindow) showDashboard() {
 
 func (mw *MainWindow) showApartments() {
 	// Перевірка на nil
-	if mw.apartmentRepo == nil {
+	if mw.apartmentService == nil {
 		dialog.ShowError(
-			fmt.Errorf("помилка: репозиторій квартир не ініціалізовано"),
+			fmt.Errorf("помилка: сервіс квартир не ініціалізовано"),
 			mw.window,
 		)
 		return
 	}
 
-	screen := NewApartmentsScreen(mw.window, mw.apartmentRepo, mw.currentUser)
+	screen := NewApartmentsScreen(mw.window, mw.apartmentService, mw.currentUser)
 	mw.setContent(screen.Render())
 }
 
@@ -398,12 +398,6 @@ func (mw *MainWindow) showGeneralReport() {
 }
 
 func (mw *MainWindow) showUsers() {
-	//mw.setContent(mw.createPlaceholder("Користувачі", "Модуль управління користувачами буде реалізований наступним"))
-	// Перевірка на nil
-	if mw.userService == nil {
-		dialog.ShowError(fmt.Errorf("помилка: сервіс користувачів не ініціалізовано"), mw.window)
-		return
-	}
 	screen := NewUsersScreen(mw.window, mw.userService, mw.currentUser)
 	mw.setContent(screen.Render())
 }
