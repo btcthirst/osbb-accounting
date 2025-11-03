@@ -24,11 +24,13 @@ type App struct {
 	db            *sql.DB
 	userRepo      repository.UserRepository
 	apartmentRepo repository.ApartmentRepository
+	paymentRepo   repository.PaymentRepository
 
 	// Business Logic Layer
 	authService      *service.AuthService
 	userService      *service.UserService
 	apartmentService *service.ApartmentService
+	paymentService   *service.PaymentService
 
 	// Поточний авторизований користувач
 	currentUser *domain.User
@@ -92,6 +94,9 @@ func (a *App) Initialize() error {
 	a.apartmentRepo = sqlite.NewSQLiteApartmentRepository(db)
 	log.Printf("✓ ApartmentRepository створено")
 
+	a.paymentRepo = sqlite.NewSQLitePaymentRepository(db)
+	log.Printf("✓ PaymentRepository створено")
+
 	// ============================================================
 	// КРОК 3: Ініціалізація Business Logic Layer
 	// ============================================================
@@ -101,7 +106,12 @@ func (a *App) Initialize() error {
 
 	// Створюємо сервіс управління користувачами
 	a.userService = service.NewUserService(a.userRepo, a.authService)
+
+	// Створюємо сервіс управління квартирами
 	a.apartmentService = service.NewApartmentService(a.apartmentRepo, a.userRepo)
+
+	// Створюємо сервіс управління платежами
+	a.paymentService = service.NewPaymentService(a.paymentRepo, a.apartmentRepo, a.userRepo)
 
 	log.Printf("✓ Сервіси ініціалізовані")
 
@@ -177,7 +187,7 @@ func (a *App) showMainWindow() {
 		log.Fatal("❌ КРИТИЧНА ПОМИЛКА: ApartmentService не ініціалізовано!")
 	}
 
-	log.Printf("✓ Створення головного вікна (ApartmentService: %v)", a.apartmentService != nil)
+	log.Printf("✓ Створення головного вікна")
 
 	mainWindow := ui.NewMainWindow(
 		a.window,
@@ -185,6 +195,7 @@ func (a *App) showMainWindow() {
 		a.authService,
 		a.userService,
 		a.apartmentService,
+		a.paymentService,
 		a.onLogout,
 	)
 

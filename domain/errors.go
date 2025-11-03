@@ -37,6 +37,27 @@ var (
 	ErrCannotDeleteSelf = errors.New("не можна видалити власний обліковий запис")
 )
 
+// Помилки валідації для сутності Payment.
+var (
+	// ErrInvalidApartmentID повертається при невалідному ID квартири
+	ErrInvalidApartmentID = errors.New("невалідний ID квартири")
+
+	// ErrInvalidPaymentType повертається при невалідному типі платежу
+	ErrInvalidPaymentType = errors.New("невалідний тип платежу")
+
+	// ErrInvalidAmount повертається при невалідній сумі
+	ErrInvalidAmount = errors.New("невалідна сума платежу")
+
+	// ErrDescriptionRequired повертається при порожньому описі
+	ErrDescriptionRequired = errors.New("опис платежу є обов'язковим")
+
+	// ErrPeriodRequired повертається при порожньому періоді
+	ErrPeriodRequired = errors.New("період є обов'язковим")
+
+	// ErrPaymentNotFound повертається, коли платіж не знайдено
+	ErrPaymentNotFound = errors.New("платіж не знайдено")
+)
+
 // Помилки валідації для сутності Apartment.
 var (
 	// ErrApartmentNumberRequired повертається при порожньому номері квартири

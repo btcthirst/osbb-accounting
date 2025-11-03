@@ -31,6 +31,9 @@ type MainWindow struct {
 	// apartmentService - сервіс для управління квартирами
 	apartmentService *service.ApartmentService
 
+	// paymentService - сервіс для управління платежами
+	paymentService *service.PaymentService
+
 	// onLogout - callback для виходу з системи
 	onLogout func()
 
@@ -73,6 +76,7 @@ func NewMainWindow(
 	authService *service.AuthService,
 	userService *service.UserService,
 	apartmentService *service.ApartmentService,
+	paymentService *service.PaymentService,
 	onLogout func(),
 ) *MainWindow {
 	// Діагностика: перевірка параметрів
@@ -86,6 +90,7 @@ func NewMainWindow(
 		authService:      authService,
 		userService:      userService,
 		apartmentService: apartmentService,
+		paymentService:   paymentService,
 		onLogout:         onLogout,
 	}
 
@@ -386,7 +391,16 @@ func (mw *MainWindow) showApartments() {
 }
 
 func (mw *MainWindow) showPayments() {
-	mw.setContent(mw.createPlaceholder("Платежі", "Модуль обліку платежів буде реалізований наступним"))
+	// Перевірка на nil
+	if mw.paymentService == nil {
+		dialog.ShowError(
+			fmt.Errorf("помилка: сервіс квартир не ініціалізовано"),
+			mw.window,
+		)
+		return
+	}
+	screen := NewPaymentsScreen(mw.window, mw.paymentService, mw.apartmentService, mw.currentUser)
+	mw.setContent(screen.Render())
 }
 
 func (mw *MainWindow) showDebtsReport() {
