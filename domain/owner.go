@@ -2,8 +2,12 @@ package domain
 
 import "time"
 
-// Owner представляє власника квартири (фізична особа).
-// Один власник може мати декілька квартир.
+// =============================================================================
+// Owner (Власник Квартири)
+// =============================================================================
+
+// Owner представляє власника квартири.
+// Це фізична особа, яка може володіти однією або кількома квартирами.
 type Owner struct {
 	// ID - унікальний ідентифікатор власника
 	ID int `json:"id" db:"id"`
@@ -11,34 +15,26 @@ type Owner struct {
 	// FullName - повне ПІБ власника
 	FullName string `json:"full_name" db:"full_name"`
 
-	// TaxID - ІПН (індивідуальний податковий номер)
+	// TaxID - індивідуальний податковий номер (ІПН/РНОКПП)
+	// 10 цифр для фізичних осіб
 	TaxID string `json:"tax_id" db:"tax_id"`
 
 	// Phone - основний контактний телефон
 	Phone string `json:"phone" db:"phone"`
 
-	// PhoneAdditional - додатковий телефон (опціонально)
-	PhoneAdditional string `json:"phone_additional,omitempty" db:"phone_additional"`
-
-	// Email - контактний email
+	// Email - email адреса (опціонально)
 	Email string `json:"email,omitempty" db:"email"`
 
-	// PassportSeries - серія паспорту
+	// AlternativePhone - додатковий телефон (опціонально)
+	AlternativePhone string `json:"alternative_phone,omitempty" db:"alternative_phone"`
+
+	// PassportSeries - серія паспорта (опціонально)
 	PassportSeries string `json:"passport_series,omitempty" db:"passport_series"`
 
-	// PassportNumber - номер паспорту
+	// PassportNumber - номер паспорта (опціонально)
 	PassportNumber string `json:"passport_number,omitempty" db:"passport_number"`
 
-	// PassportIssuedBy - ким виданий паспорт
-	PassportIssuedBy string `json:"passport_issued_by,omitempty" db:"passport_issued_by"`
-
-	// PassportIssuedDate - дата видачі паспорту
-	PassportIssuedDate *time.Time `json:"passport_issued_date,omitempty" db:"passport_issued_date"`
-
-	// RegistrationAddress - адреса реєстрації
-	RegistrationAddress string `json:"registration_address,omitempty" db:"registration_address"`
-
-	// Notes - додаткові примітки
+	// Notes - додаткові примітки про власника
 	Notes string `json:"notes,omitempty" db:"notes"`
 
 	// IsActive - чи активний власник
@@ -54,11 +50,12 @@ type Owner struct {
 // Validate виконує валідацію даних власника.
 func (o *Owner) Validate() error {
 	if o.FullName == "" {
-		return ErrFullNameRequired
+		return ErrOwnerNameRequired
 	}
 	if o.TaxID == "" {
 		return ErrTaxIDRequired
 	}
+	// Валідація ІПН (10 цифр)
 	if len(o.TaxID) != 10 {
 		return ErrInvalidTaxID
 	}
@@ -68,16 +65,11 @@ func (o *Owner) Validate() error {
 	return nil
 }
 
-// GetDisplayName повертає ім'я для відображення.
-func (o *Owner) GetDisplayName() string {
-	return o.FullName
-}
-
-// GetContactInfo повертає контактну інформацію.
+// GetContactInfo повертає контактну інформацію власника.
 func (o *Owner) GetContactInfo() string {
 	info := o.Phone
 	if o.Email != "" {
-		info += " • " + o.Email
+		info += " | " + o.Email
 	}
 	return info
 }

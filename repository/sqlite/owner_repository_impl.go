@@ -257,7 +257,7 @@ func (r *SQLiteOwnerRepository) Update(owner *domain.Owner) error {
 		owner.FullName,
 		owner.TaxID,
 		owner.Phone,
-		owner.PhoneAdditional,
+		owner.AlternativePhone,
 		owner.Email,
 		owner.PassportSeries,
 		owner.PassportNumber,
@@ -416,7 +416,7 @@ func (r *SQLiteOwnerRepository) scanOwners(rows *sql.Rows) ([]*domain.Owner, err
 
 		// Конвертуємо nullable поля
 		if phoneAdditional.Valid {
-			owner.PhoneAdditional = phoneAdditional.String
+			owner.AlternativePhone = phoneAdditional.String
 		}
 		if email.Valid {
 			owner.Email = email.String

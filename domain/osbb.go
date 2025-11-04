@@ -2,48 +2,53 @@ package domain
 
 import "time"
 
-// OSBB представляє організацію ОСББ (єдина на систему).
+// =============================================================================
+// OSBB (Об'єднання Співвласників Багатоквартирного Будинку)
+// =============================================================================
+
+// OSBB представляє організацію ОСББ.
+// Це центральна сутність системи - єдина організація, яка управляє будинком.
 type OSBB struct {
-	// ID - завжди 1 (єдина організація)
+	// ID - унікальний ідентифікатор ОСББ
 	ID int `json:"id" db:"id"`
 
 	// Name - повна назва ОСББ
 	Name string `json:"name" db:"name"`
 
-	// ShortName - скорочена назва
-	ShortName string `json:"short_name" db:"short_name"`
+	// ShortName - скорочена назва (опціонально)
+	ShortName string `json:"short_name,omitempty" db:"short_name"`
 
 	// Address - повна адреса будинку
 	Address string `json:"address" db:"address"`
 
-	// EDRPOU - код ЄДРПОУ організації
+	// EDRPOU - код ЄДРПОУ (ідентифікаційний код юридичної особи)
 	EDRPOU string `json:"edrpou" db:"edrpou"`
 
-	// HeadOfBoard - ПІБ голови правління
-	HeadOfBoard string `json:"head_of_board" db:"head_of_board"`
+	// BaseRate - базовий тариф за утримання будинку (грн/м²)
+	BaseRate float64 `json:"base_rate" db:"base_rate"`
 
-	// BaseMaintenanceRate - базовий тариф на утримання (грн/м²)
-	BaseMaintenanceRate float64 `json:"base_maintenance_rate" db:"base_maintenance_rate"`
+	// ChairmanName - ПІБ голови правління
+	ChairmanName string `json:"chairman_name" db:"chairman_name"`
 
-	// BaseUtilitiesRate - базовий тариф на комунальні (грн/м²)
-	BaseUtilitiesRate float64 `json:"base_utilities_rate" db:"base_utilities_rate"`
+	// ChairmanPhone - контактний телефон голови
+	ChairmanPhone string `json:"chairman_phone" db:"chairman_phone"`
 
-	// BankName - назва банку
+	// ChairmanEmail - email голови (опціонально)
+	ChairmanEmail string `json:"chairman_email,omitempty" db:"chairman_email"`
+
+	// BankName - назва банку для розрахункового рахунку
 	BankName string `json:"bank_name" db:"bank_name"`
 
-	// BankAccount - розрахунковий рахунок ОСББ
+	// BankAccount - розрахунковий рахунок ОСББ (IBAN)
 	BankAccount string `json:"bank_account" db:"bank_account"`
 
-	// BankMFO - МФО банку
-	BankMFO string `json:"bank_mfo" db:"bank_mfo"`
+	// MFO - МФО банку
+	MFO string `json:"mfo" db:"mfo"`
 
-	// Phone - контактний телефон
-	Phone string `json:"phone" db:"phone"`
+	// FoundedAt - дата створення ОСББ
+	FoundedAt time.Time `json:"founded_at" db:"founded_at"`
 
-	// Email - контактний email
-	Email string `json:"email" db:"email"`
-
-	// CreatedAt - час створення
+	// CreatedAt - час створення запису в системі
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 
 	// UpdatedAt - час останнього оновлення
@@ -56,19 +61,25 @@ func (o *OSBB) Validate() error {
 		return ErrOSBBNameRequired
 	}
 	if o.Address == "" {
-		return ErrAddressRequired
+		return ErrOSBBAddressRequired
 	}
-	if o.BaseMaintenanceRate < 0 {
-		return ErrInvalidRate
+	if o.EDRPOU == "" || len(o.EDRPOU) != 8 {
+		return ErrInvalidEDRPOU
 	}
-	if o.BaseUtilitiesRate < 0 {
-		return ErrInvalidRate
+	if o.BaseRate < 0 {
+		return ErrInvalidBaseRate
+	}
+	if o.ChairmanName == "" {
+		return ErrChairmanNameRequired
+	}
+	if o.BankAccount == "" {
+		return ErrBankAccountRequired
 	}
 	return nil
 }
 
-// GetFullName повертає повну назву для документів.
-func (o *OSBB) GetFullName() string {
+// GetDisplayName повертає зручне ім'я для відображення.
+func (o *OSBB) GetDisplayName() string {
 	if o.ShortName != "" {
 		return o.ShortName
 	}
