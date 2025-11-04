@@ -58,6 +58,54 @@ var (
 	ErrPaymentNotFound = errors.New("платіж не знайдено")
 )
 
+// Помилки валідації для сутності OSBB.
+var (
+	// ErrOSBBNameRequired повертається при порожній назві ОСББ
+	ErrOSBBNameRequired = errors.New("назва ОСББ є обов'язковою")
+
+	// ErrAddressRequired повертається при порожній адресі
+	ErrAddressRequired = errors.New("адреса є обов'язковою")
+
+	// ErrInvalidRate повертається при невалідному тарифі
+	ErrInvalidRate = errors.New("тариф не може бути від'ємним")
+)
+
+// Помилки валідації для сутності Owner.
+var (
+	// ErrTaxIDRequired повертається при порожньому ІПН
+	ErrTaxIDRequired = errors.New("ІПН є обов'язковим")
+
+	// ErrInvalidTaxID повертається при невалідному ІПН
+	ErrInvalidTaxID = errors.New("ІПН має містити 10 цифр")
+
+	// ErrPhoneRequired повертається при порожньому телефоні
+	ErrPhoneRequired = errors.New("телефон є обов'язковим")
+
+	// ErrOwnerNotFound повертається, коли власника не знайдено
+	ErrOwnerNotFound = errors.New("власника не знайдено")
+
+	// ErrOwnerIDRequired повертається при відсутності ID власника
+	ErrOwnerIDRequired = errors.New("ID власника є обов'язковим")
+
+	// ErrOwnerIDRequired повертається при відсутності ID власника
+	ErrOwnerAlreadyExists = errors.New("Власник вже існує")
+)
+
+// Помилки валідації для сутності PersonalAccount.
+var (
+	// ErrAccountNumberRequired повертається при порожньому номері рахунку
+	ErrAccountNumberRequired = errors.New("номер особистого рахунку є обов'язковим")
+
+	// ErrInvalidAccountNumber повертається при невалідному номері
+	ErrInvalidAccountNumber = errors.New("номер рахунку має містити 8-12 символів")
+
+	// ErrAccountNotFound повертається, коли рахунок не знайдено
+	ErrAccountNotFound = errors.New("особистий рахунок не знайдено")
+
+	// ErrAccountAlreadyExists повертається при дублюванні номера
+	ErrAccountAlreadyExists = errors.New("рахунок з таким номером вже існує")
+)
+
 // Помилки валідації для сутності Apartment.
 var (
 	// ErrApartmentNumberRequired повертається при порожньому номері квартири

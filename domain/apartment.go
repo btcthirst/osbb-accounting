@@ -27,9 +27,12 @@ type Apartment struct {
 	Rooms int `json:"rooms" db:"rooms"`
 
 	// OwnerName - ПІБ власника квартири
+	// DEPRECATED: Використовується для зворотної сумісності
+	// В нових версіях використовуйте PersonalAccount -> Owner
 	OwnerName string `json:"owner_name" db:"owner_name"`
 
 	// OwnerPhone - контактний телефон власника
+	// DEPRECATED: Використовується для зворотної сумісності
 	OwnerPhone string `json:"owner_phone" db:"owner_phone"`
 
 	// OwnerEmail - email власника (опціонально)
