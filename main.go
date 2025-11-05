@@ -25,12 +25,18 @@ type App struct {
 	userRepo      repository.UserRepository
 	apartmentRepo repository.ApartmentRepository
 	paymentRepo   repository.PaymentRepository
+	osbbRepo      repository.OSBBRepository
+	ownerRepo     repository.OwnerRepository
+	accountRepo   repository.PersonalAccountRepository
 
 	// Business Logic Layer
 	authService      *service.AuthService
 	userService      *service.UserService
 	apartmentService *service.ApartmentService
 	paymentService   *service.PaymentService
+	osbbService      *service.OSBBService
+	ownerService     *service.OwnerService
+	accountService   *service.AccountService
 
 	// Поточний авторизований користувач
 	currentUser *domain.User
@@ -97,6 +103,15 @@ func (a *App) Initialize() error {
 	a.paymentRepo = sqlite.NewSQLitePaymentRepository(db)
 	log.Printf("✓ PaymentRepository створено")
 
+	a.osbbRepo = sqlite.NewOSBBRepository(db)
+	log.Printf("✓ OsbbRepository створено")
+
+	a.ownerRepo = sqlite.NewOwnerRepository(db)
+	log.Printf("✓ OwnerRepository створено")
+
+	a.accountRepo = sqlite.NewPersonalAccountRepository(db)
+	log.Printf("✓ PersonalAccountRepository створено")
+
 	// ============================================================
 	// КРОК 3: Ініціалізація Business Logic Layer
 	// ============================================================
@@ -112,6 +127,12 @@ func (a *App) Initialize() error {
 
 	// Створюємо сервіс управління платежами
 	a.paymentService = service.NewPaymentService(a.paymentRepo, a.apartmentRepo, a.userRepo)
+
+	a.osbbService = service.NewOSBBService(a.osbbRepo, a.userRepo)
+
+	a.ownerService = service.NewOwnerService(a.ownerRepo, a.accountRepo, a.userRepo)
+
+	a.accountService = service.NewAccountService(a.accountRepo, a.apartmentRepo, a.ownerRepo, a.paymentRepo, a.userRepo)
 
 	log.Printf("✓ Сервіси ініціалізовані")
 
@@ -196,6 +217,9 @@ func (a *App) showMainWindow() {
 		a.userService,
 		a.apartmentService,
 		a.paymentService,
+		a.osbbService,
+		a.ownerService,
+		a.accountService,
 		a.onLogout,
 	)
 

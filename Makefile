@@ -24,3 +24,6 @@ tests-c:	# Тести з покриттям
 
 tests-p:	# Тести конкретного пакету
 	go test ./service
+
+indb:
+	sqlite3 ~/.osbb-accounting/osbb.db

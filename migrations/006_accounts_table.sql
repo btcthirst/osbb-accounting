@@ -2,6 +2,7 @@
 -- Таблиця Особистих Рахунків
 -- =============================================================================
 
+
 CREATE TABLE IF NOT EXISTS personal_accounts (
     -- Унікальний ідентифікатор рахунку
     id INTEGER PRIMARY KEY AUTOINCREMENT,

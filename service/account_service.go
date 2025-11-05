@@ -537,6 +537,18 @@ func (s *AccountService) RecalculateAllBalances(userID int) (int, error) {
 	return successCount, nil
 }
 
+func (s *AccountService) CountOwners(userID int) (int, error) {
+	// Перевірка прав доступу (тільки адміни)
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return 0, err
+	}
+	if !user.IsAdmin() {
+		return 0, domain.ErrAccessDenied
+	}
+	return s.accountRepo.Count()
+}
+
 // getAccountStatus повертає статус рахунку для відображення.
 func getAccountStatus(account *domain.PersonalAccount) string {
 	if account.IsClosed() {

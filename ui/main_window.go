@@ -34,6 +34,12 @@ type MainWindow struct {
 	// paymentService - сервіс для управління платежами
 	paymentService *service.PaymentService
 
+	osbbService *service.OSBBService
+
+	ownerService *service.OwnerService
+
+	accountService *service.AccountService
+
 	// onLogout - callback для виходу з системи
 	onLogout func()
 
@@ -77,6 +83,9 @@ func NewMainWindow(
 	userService *service.UserService,
 	apartmentService *service.ApartmentService,
 	paymentService *service.PaymentService,
+	osbbService *service.OSBBService,
+	ownerService *service.OwnerService,
+	accountService *service.AccountService,
 	onLogout func(),
 ) *MainWindow {
 	// Діагностика: перевірка параметрів
@@ -91,6 +100,9 @@ func NewMainWindow(
 		userService:      userService,
 		apartmentService: apartmentService,
 		paymentService:   paymentService,
+		osbbService:      osbbService,
+		ownerService:     ownerService,
+		accountService:   accountService,
 		onLogout:         onLogout,
 	}
 
@@ -134,7 +146,18 @@ func (mw *MainWindow) getMenuSections() []MenuSection {
 			Icon:  theme.FolderIcon(),
 			Label: "Квартири",
 			OnTap: mw.showApartments,
-		})
+		},
+			MenuItem{
+				Icon:  theme.AccountIcon(),
+				Label: "Власники",
+				OnTap: mw.showOwners,
+			},
+			MenuItem{
+				Icon:  theme.DocumentIcon(),
+				Label: "Особисті рахунки",
+				OnTap: mw.showAccounts,
+			},
+		)
 
 		// Платежі доступні бухгалтерам та адмінам
 		if mw.currentUser.CanManageFinances() {
@@ -186,6 +209,21 @@ func (mw *MainWindow) getMenuSections() []MenuSection {
 			},
 		}
 		sections = append(sections, adminSection)
+	}
+
+	// ✅ НОВИЙ РОЗДІЛ: Налаштування
+	if mw.currentUser.IsAdmin() || mw.currentUser.HasRole(domain.RoleHead) {
+		settingsSection := MenuSection{
+			Title: "Налаштування",
+			Items: []MenuItem{
+				{
+					Icon:  theme.SettingsIcon(),
+					Label: "ОСББ", // ✅ НОВИЙ
+					OnTap: mw.showOSBBSettings,
+				},
+			},
+		}
+		sections = append(sections, settingsSection)
 	}
 
 	// Розділ профілю (доступний всім)
@@ -550,4 +588,33 @@ func (mw *MainWindow) createPlaceholder(title, message string) fyne.CanvasObject
 	return container.NewPadded(
 		container.NewCenter(card),
 	)
+}
+
+func (mw *MainWindow) showOSBBSettings() {
+	screen := NewOSBBSettingsScreen(
+		mw.window,
+		mw.osbbService,
+		mw.currentUser,
+	)
+	mw.setContent(screen.Render())
+}
+
+func (mw *MainWindow) showOwners() {
+	screen := NewOwnersScreen(
+		mw.window,
+		mw.ownerService,
+		mw.currentUser,
+	)
+	mw.setContent(screen.Render())
+}
+
+func (mw *MainWindow) showAccounts() {
+	screen := NewAccountsScreen(
+		mw.window,
+		mw.accountService,
+		mw.apartmentService,
+		mw.ownerService,
+		mw.currentUser,
+	)
+	mw.setContent(screen.Render())
 }

@@ -1,26 +1,20 @@
-
+-- =============================================================================
+-- Активуємо перевірку зовнішніх ключів для поточної сесії SQLite
+-- =============================================================================
+PRAGMA foreign_keys = ON;
 -- Вставка тестових даних
--- Нарахування за січень 2025 для квартири 1
-INSERT INTO payments (apartment_id, type, category, amount, description, payment_date, period, created_by, notes)
-VALUES 
-    (1, 'charge', 'maintenance', 500.00, 'Утримання будинку за січень 2025', '2025-01-01', '2025-01', 1, 'Базовий тариф'),
-    (1, 'charge', 'utilities', 300.00, 'Комунальні послуги за січень 2025', '2025-01-01', '2025-01', 1, ''),
-    (1, 'incoming', 'maintenance', 500.00, 'Оплата утримання будинку', '2025-01-15', '2025-01', 1, 'Платіжка №12345');
 
--- Нарахування для квартири 2 (з боргом)
-INSERT INTO payments (apartment_id, type, category, amount, description, payment_date, period, created_by, notes)
-VALUES 
-    (2, 'charge', 'maintenance', 550.00, 'Утримання будинку за січень 2025', '2025-01-01', '2025-01', 1, ''),
-    (2, 'charge', 'utilities', 320.00, 'Комунальні послуги за січень 2025', '2025-01-01', '2025-01', 1, ''),
-    (2, 'incoming', 'maintenance', 300.00, 'Часткова оплата', '2025-01-20', '2025-01', 1, 'Платіжка №12346');
+-- ДОДАЙТЕ ЦЕЙ БЛОК ПЕРЕД INSERT INTO payments
+INSERT INTO users (id, username, hashed_password, role, full_name, is_active)
+VALUES (
+    1,
+    'admin',
+    '$2a$12$nzPTANyFv3LRYfPWVvr37uIpUzBrmLkH9SWh7YcRgxFQt.q6cX1i6', -- У реальному житті це має бути хеш
+    'admin',
+    'Тестовий Адміністратор',
+    1
+);
 
--- Нарахування для квартири 3 (повна оплата)
-INSERT INTO payments (apartment_id, type, category, amount, description, payment_date, period, created_by, notes)
-VALUES 
-    (3, 'charge', 'maintenance', 700.00, 'Утримання будинку за січень 2025', '2025-01-01', '2025-01', 1, 'Велика квартира'),
-    (3, 'charge', 'utilities', 400.00, 'Комунальні послуги за січень 2025', '2025-01-01', '2025-01', 1, ''),
-    (3, 'incoming', 'maintenance', 700.00, 'Оплата утримання', '2025-01-10', '2025-01', 1, ''),
-    (3, 'incoming', 'utilities', 400.00, 'Оплата комунальних', '2025-01-10', '2025-01', 1, '');
 
 -- Примітка: Тестові дані показують різні сценарії:
 -- - Квартира 1: частково оплачена (борг 300грн)
@@ -79,9 +73,30 @@ UPDATE apartments SET owner_id = 3 WHERE id = 3;
 -- Створюємо особисті рахунки для існуючих квартир
 INSERT OR IGNORE INTO personal_accounts (account_number, apartment_id, owner_id, current_balance)
 VALUES 
-    ('0001-0001', 1, 1, -300.00),  -- Борг 300 грн
-    ('0001-0002', 2, 2, -570.00),  -- Борг 570 грн
-    ('0001-0003', 3, 3, 0.00);     -- Без боргу
+    ('1001', 1, 1, -300.00),  -- Борг 300 грн
+    ('1002', 2, 2, -570.00),  -- Борг 570 грн
+    ('1003', 3, 3, 0.00);     -- Без боргу
 
+-- Нарахування за січень 2025 для квартири 1
+INSERT INTO payments (apartment_id, type, category, amount, description, payment_date, period, created_by, notes)
+VALUES 
+    (1, 'charge', 'maintenance', 500.00, 'Утримання будинку за січень 2025', '2025-01-01', '2025-01', 1, 'Базовий тариф'),
+    (1, 'charge', 'utilities', 300.00, 'Комунальні послуги за січень 2025', '2025-01-01', '2025-01', 1, ''),
+    (1, 'incoming', 'maintenance', 500.00, 'Оплата утримання будинку', '2025-01-15', '2025-01', 1, 'Платіжка №12345');
+
+-- Нарахування для квартири 2 (з боргом)
+INSERT INTO payments (apartment_id, type, category, amount, description, payment_date, period, created_by, notes)
+VALUES 
+    (2, 'charge', 'maintenance', 550.00, 'Утримання будинку за січень 2025', '2025-01-01', '2025-01', 1, ''),
+    (2, 'charge', 'utilities', 320.00, 'Комунальні послуги за січень 2025', '2025-01-01', '2025-01', 1, ''),
+    (2, 'incoming', 'maintenance', 300.00, 'Часткова оплата', '2025-01-20', '2025-01', 1, 'Платіжка №12346');
+
+-- Нарахування для квартири 3 (повна оплата)
+INSERT INTO payments (apartment_id, type, category, amount, description, payment_date, period, created_by, notes)
+VALUES 
+    (3, 'charge', 'maintenance', 700.00, 'Утримання будинку за січень 2025', '2025-01-01', '2025-01', 1, 'Велика квартира'),
+    (3, 'charge', 'utilities', 400.00, 'Комунальні послуги за січень 2025', '2025-01-01', '2025-01', 1, ''),
+    (3, 'incoming', 'maintenance', 700.00, 'Оплата утримання', '2025-01-10', '2025-01', 1, ''),
+    (3, 'incoming', 'utilities', 400.00, 'Оплата комунальних', '2025-01-10', '2025-01', 1, '');
 -- Примітка: Після цієї міграції система буде готова до роботи з 
 -- особистими рахунками та фінансовим обліком на рівні ОСББ
