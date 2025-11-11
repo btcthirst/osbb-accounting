@@ -1,0 +1,480 @@
+// presentation/fyne/screens/owners_screen.go
+package screens
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
+
+	"osbb-accounting/application/service"
+	"osbb-accounting/application/usecase/owner"
+)
+
+// OwnersScreen представляє екран управління власниками.
+type OwnersScreen struct {
+	window       fyne.Window
+	ownerService *service.OwnerService
+	authManager  *AuthManager
+
+	// UI елементи
+	searchEntry   *widget.Entry
+	filterSelect  *widget.Select
+	ownersTable   *widget.Table
+	createButton  *widget.Button
+	refreshButton *widget.Button
+
+	// Дані
+	owners         []*owner.OwnerOutput
+	filteredOwners []*owner.OwnerOutput
+	updateStats    func()
+	currentPage    int
+	pageSize       int
+	totalCount     int64
+}
+
+// NewOwnersScreen створює новий екран власників.
+func NewOwnersScreen(
+	window fyne.Window,
+	ownerService *service.OwnerService,
+	authManager *AuthManager,
+) *OwnersScreen {
+	screen := &OwnersScreen{
+		window:       window,
+		ownerService: ownerService,
+		authManager:  authManager,
+		pageSize:     50,
+		currentPage:  0,
+	}
+
+	screen.buildUI()
+	screen.loadOwners()
+
+	return screen
+}
+
+// buildUI створює інтерфейс екрану.
+func (s *OwnersScreen) buildUI() {
+	// Пошук
+	s.searchEntry = widget.NewEntry()
+	s.searchEntry.SetPlaceHolder("🔍 Пошук за ПІБ, телефоном, email...")
+	s.searchEntry.OnChanged = func(query string) {
+		s.applyFilters()
+	}
+
+	// Фільтр
+	s.filterSelect = widget.NewSelect([]string{
+		"Всі власники",
+		"Тільки з ІПН",
+		"Без ІПН",
+		"Тільки з контактами",
+		"Без контактів",
+		"Тільки активні",
+		"Неактивні",
+	}, func(value string) {
+		s.applyFilters()
+	})
+	s.filterSelect.SetSelected("Всі власники")
+
+	// Кнопка створення
+	s.createButton = widget.NewButtonWithIcon("Додати власника", theme.ContentAddIcon(), func() {
+		s.showCreateDialog()
+	})
+	s.createButton.Importance = widget.HighImportance
+
+	// Кнопка оновлення
+	s.refreshButton = widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+		s.loadOwners()
+	})
+
+	// Таблиця
+	s.buildTable()
+}
+
+// buildTable створює таблицю з власниками.
+func (s *OwnersScreen) buildTable() {
+	s.ownersTable = widget.NewTable(
+		func() (int, int) {
+			return len(s.filteredOwners) + 1, 6 // +1 для заголовків, 6 колонок
+		},
+		func() fyne.CanvasObject {
+			return widget.NewLabel("Template")
+		},
+		func(id widget.TableCellID, cell fyne.CanvasObject) {
+			label := cell.(*widget.Label)
+
+			if id.Row == 0 {
+				// Заголовки
+				headers := []string{"№", "ПІБ", "Телефон", "Email", "ІПН", "Дії"}
+				label.SetText(headers[id.Col])
+				label.TextStyle = fyne.TextStyle{Bold: true}
+				return
+			}
+
+			// Дані
+			if id.Row-1 >= len(s.filteredOwners) {
+				label.SetText("")
+				return
+			}
+
+			owner := s.filteredOwners[id.Row-1]
+
+			switch id.Col {
+			case 0: // №
+				label.SetText(fmt.Sprintf("%d", id.Row))
+			case 1: // ПІБ
+				label.SetText(owner.FullName)
+				if !owner.IsActive {
+					label.TextStyle = fyne.TextStyle{Italic: true}
+				}
+			case 2: // Телефон
+				if owner.Phone != nil {
+					label.SetText(*owner.Phone)
+				} else {
+					label.SetText("—")
+				}
+			case 3: // Email
+				if owner.Email != nil {
+					label.SetText(*owner.Email)
+				} else {
+					label.SetText("—")
+				}
+			case 4: // ІПН
+				if owner.TaxNumber != nil {
+					label.SetText(*owner.TaxNumber)
+				} else {
+					label.SetText("—")
+				}
+			case 5: // Дії
+				label.SetText("⚙️")
+			}
+		},
+	)
+
+	// Ширина колонок
+	s.ownersTable.SetColumnWidth(0, 50)  // №
+	s.ownersTable.SetColumnWidth(1, 250) // ПІБ
+	s.ownersTable.SetColumnWidth(2, 150) // Телефон
+	s.ownersTable.SetColumnWidth(3, 200) // Email
+	s.ownersTable.SetColumnWidth(4, 120) // ІПН
+	s.ownersTable.SetColumnWidth(5, 80)  // Дії
+
+	// Клік на комірку
+	s.ownersTable.OnSelected = func(id widget.TableCellID) {
+		if id.Row == 0 {
+			return // Заголовок
+		}
+		if id.Row-1 >= len(s.filteredOwners) {
+			return
+		}
+
+		owner := s.filteredOwners[id.Row-1]
+
+		if id.Col == 5 {
+			// Клік на "Дії"
+			s.showActionsMenu(owner)
+		} else {
+			// Клік на інші колонки - показати деталі
+			s.showOwnerDetails(owner)
+		}
+	}
+}
+
+// Render повертає контейнер з UI екрану.
+func (s *OwnersScreen) Render() fyne.CanvasObject {
+	// Toolbar
+	toolbar := container.NewBorder(
+		nil, nil,
+		container.NewHBox(s.createButton, s.refreshButton),
+		nil,
+		container.NewVBox(
+			s.searchEntry,
+			s.filterSelect,
+		),
+	)
+
+	// Статистика
+	statsLabel := widget.NewLabel(s.getStatsText())
+	s.updateStats = func() {
+		statsLabel.SetText(s.getStatsText())
+	}
+
+	// Головний контейнер
+	content := container.NewBorder(
+		toolbar,
+		statsLabel,
+		nil,
+		nil,
+		s.ownersTable,
+	)
+
+	return content
+}
+
+// updateStats - функція для оновлення статистики
+var updateStats func()
+
+// getStatsText повертає текст статистики.
+func (s *OwnersScreen) getStatsText() string {
+	return fmt.Sprintf("Показано: %d з %d власників", len(s.filteredOwners), s.totalCount)
+}
+
+// loadOwners завантажує список власників.
+func (s *OwnersScreen) loadOwners() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	output, err := s.ownerService.List(ctx, owner.ListOwnersInput{
+		CurrentUserID: s.authManager.GetCurrentUserID(),
+		Limit:         1000, // Завантажуємо всіх для клієнтської фільтрації
+		Offset:        0,
+		OrderBy:       "name",
+	})
+
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("Помилка завантаження власників: %v", err), s.window)
+		return
+	}
+
+	s.owners = output.Owners
+	s.totalCount = output.Total
+	s.applyFilters()
+}
+
+// applyFilters застосовує фільтри до списку.
+func (s *OwnersScreen) applyFilters() {
+	s.filteredOwners = make([]*owner.OwnerOutput, 0)
+
+	searchQuery := s.searchEntry.Text
+	filterType := s.filterSelect.Selected
+
+	for _, o := range s.owners {
+		// Пошук
+		if searchQuery != "" {
+			match := false
+			// Пошук в ПІБ
+			if contains(o.FullName, searchQuery) {
+				match = true
+			}
+			// Пошук в телефоні
+			if o.Phone != nil && contains(*o.Phone, searchQuery) {
+				match = true
+			}
+			// Пошук в email
+			if o.Email != nil && contains(*o.Email, searchQuery) {
+				match = true
+			}
+			// Пошук в ІПН
+			if o.TaxNumber != nil && contains(*o.TaxNumber, searchQuery) {
+				match = true
+			}
+
+			if !match {
+				continue
+			}
+		}
+
+		// Фільтр
+		switch filterType {
+		case "Тільки з ІПН":
+			if o.TaxNumber == nil || *o.TaxNumber == "" {
+				continue
+			}
+		case "Без ІПН":
+			if o.TaxNumber != nil && *o.TaxNumber != "" {
+				continue
+			}
+		case "Тільки з контактами":
+			if (o.Phone == nil || *o.Phone == "") && (o.Email == nil || *o.Email == "") {
+				continue
+			}
+		case "Без контактів":
+			if (o.Phone != nil && *o.Phone != "") || (o.Email != nil && *o.Email != "") {
+				continue
+			}
+		case "Тільки активні":
+			if !o.IsActive {
+				continue
+			}
+		case "Неактивні":
+			if o.IsActive {
+				continue
+			}
+		}
+
+		s.filteredOwners = append(s.filteredOwners, o)
+	}
+
+	s.ownersTable.Refresh()
+	if updateStats != nil {
+		updateStats()
+	}
+}
+
+// showOwnerDetails показує детальну інформацію про власника.
+func (s *OwnersScreen) showOwnerDetails(o *owner.OwnerOutput) {
+	details := fmt.Sprintf(
+		"ПІБ: %s\n"+
+			"Коротко: %s\n\n"+
+			"Телефон: %s\n"+
+			"Email: %s\n"+
+			"ІПН: %s\n\n"+
+			"Статус: %s\n",
+		o.FullName,
+		o.ShortName,
+		ptrToString(o.Phone, "не вказано"),
+		ptrToString(o.Email, "не вказано"),
+		ptrToString(o.TaxNumber, "не вказано"),
+		activeStatus(o.IsActive),
+	)
+
+	if o.PassportSeries != nil || o.PassportNumber != nil {
+		details += fmt.Sprintf("\nПаспорт: %s %s\n",
+			ptrToString(o.PassportSeries, ""),
+			ptrToString(o.PassportNumber, ""),
+		)
+	}
+
+	if o.RegisteredAddress != nil {
+		details += fmt.Sprintf("\nАдреса реєстрації: %s\n", *o.RegisteredAddress)
+	}
+
+	if o.ActualAddress != nil {
+		details += fmt.Sprintf("Фактична адреса: %s\n", *o.ActualAddress)
+	}
+
+	if o.Notes != nil {
+		details += fmt.Sprintf("\nПримітки: %s\n", *o.Notes)
+	}
+
+	dialog.ShowInformation("Інформація про власника", details, s.window)
+}
+
+// showActionsMenu показує меню дій з власником.
+func (s *OwnersScreen) showActionsMenu(o *owner.OwnerOutput) {
+	// Створюємо діалог з кнопками
+	editButton := widget.NewButton("✏️ Редагувати", func() {
+		s.showEditDialog(o)
+	})
+
+	deleteButton := widget.NewButton("🗑️ Видалити", func() {
+		s.confirmDelete(o)
+	})
+	deleteButton.Importance = widget.DangerImportance
+
+	detailsButton := widget.NewButton("ℹ️ Деталі", func() {
+		s.showOwnerDetails(o)
+	})
+
+	content := container.NewVBox(
+		widget.NewLabel(fmt.Sprintf("Дії з власником: %s", o.ShortName)),
+		layout.NewSpacer(),
+		editButton,
+		deleteButton,
+		detailsButton,
+	)
+
+	dialog.ShowCustom("Дії", "Закрити", content, s.window)
+}
+
+// showCreateDialog показує діалог створення власника.
+func (s *OwnersScreen) showCreateDialog() {
+	dialog := NewOwnerFormDialog(s.window, s.ownerService, s.authManager, nil)
+	dialog.OnSuccess = func() {
+		s.loadOwners()
+	}
+	dialog.Show()
+}
+
+// showEditDialog показує діалог редагування власника.
+func (s *OwnersScreen) showEditDialog(o *owner.OwnerOutput) {
+	dialog := NewOwnerFormDialog(s.window, s.ownerService, s.authManager, o)
+	dialog.OnSuccess = func() {
+		s.loadOwners()
+	}
+	dialog.Show()
+}
+
+// confirmDelete підтверджує видалення власника.
+func (s *OwnersScreen) confirmDelete(o *owner.OwnerOutput) {
+	dialog.ShowConfirm(
+		"Підтвердження видалення",
+		fmt.Sprintf("Ви впевнені, що хочете видалити власника '%s'?", o.FullName),
+		func(confirmed bool) {
+			if confirmed {
+				s.deleteOwner(o)
+			}
+		},
+		s.window,
+	)
+}
+
+// deleteOwner видаляє власника.
+func (s *OwnersScreen) deleteOwner(o *owner.OwnerOutput) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := s.ownerService.Delete(ctx, owner.DeleteOwnerInput{
+		CurrentUserID: s.authManager.GetCurrentUserID(),
+		OwnerID:       o.ID,
+	})
+
+	if err != nil {
+		dialog.ShowError(fmt.Errorf("Помилка видалення: %v", err), s.window)
+		return
+	}
+
+	dialog.ShowInformation("Успіх", fmt.Sprintf("Власник '%s' успішно видалено", o.FullName), s.window)
+	s.loadOwners()
+}
+
+// Helper functions
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) &&
+		(s == substr || len(substr) == 0 ||
+			indexOf(toLowerCase(s), toLowerCase(substr)) >= 0)
+}
+
+func toLowerCase(s string) string {
+	// Простий lowercase для ASCII
+	result := make([]rune, len(s))
+	for i, r := range s {
+		if r >= 'A' && r <= 'Z' {
+			result[i] = r + 32
+		} else if r >= 'А' && r <= 'Я' {
+			result[i] = r + 32
+		} else {
+			result[i] = r
+		}
+	}
+	return string(result)
+}
+
+func indexOf(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}
+
+func ptrToString(ptr *string, defaultVal string) string {
+	if ptr != nil && *ptr != "" {
+		return *ptr
+	}
+	return defaultVal
+}
+
+func activeStatus(isActive bool) string {
+	if isActive {
+		return "✅ Активний"
+	}
+	return "❌ Неактивний"
+}

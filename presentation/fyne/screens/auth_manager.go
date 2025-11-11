@@ -1,5 +1,5 @@
 // presentation/fyne/auth/auth_manager.go
-package auth
+package screens
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/auth"
-	"osbb-accounting/presentation/fyne/screens"
 )
 
 // AuthManager управляє станом аутентифікації в додатку.
@@ -49,7 +48,7 @@ func NewAuthManager(application fyne.App, authService *service.AuthService) *Aut
 
 // ShowLoginScreen показує екран входу.
 func (m *AuthManager) ShowLoginScreen(window fyne.Window) {
-	loginScreen := screens.NewLoginScreen(window, m.authService)
+	loginScreen := NewLoginScreen(window, m.authService)
 
 	loginScreen.OnLoginSuccess(func(sessionToken string, userID int64) {
 		m.handleLoginSuccess(sessionToken, userID)
@@ -65,7 +64,7 @@ func (m *AuthManager) ShowLoginScreen(window fyne.Window) {
 
 // ShowRegisterScreen показує екран реєстрації.
 func (m *AuthManager) ShowRegisterScreen(window fyne.Window) {
-	registerScreen := screens.NewRegisterScreen(window, m.authService)
+	registerScreen := NewRegisterScreen(window, m.authService)
 
 	registerScreen.OnRegisterSuccess(func() {
 		// Після успішної реєстрації повертаємось на екран входу
