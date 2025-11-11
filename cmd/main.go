@@ -29,7 +29,7 @@ func main() {
 
 	// 2. Ініціалізація бази даних
 	dbConfig := sqlite.DefaultConfig()
-	dbConfig.Path = "./data/osbb.db"
+	//dbConfig.Path = "./data/osbb.db"
 
 	db, err := sqlite.Connect(dbConfig)
 	if err != nil {

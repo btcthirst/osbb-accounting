@@ -4,6 +4,8 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3" // SQLite driver
@@ -20,8 +22,15 @@ type Config struct {
 
 // DefaultConfig повертає конфігурацію за замовчуванням.
 func DefaultConfig() *Config {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = "."
+	}
+
+	dataDir := filepath.Join(homeDir, "osbb-accounting")
+
 	return &Config{
-		Path:            "./data/osbb.db",
+		Path:            filepath.Join(dataDir, "osbb.db"),
 		MaxOpenConns:    25,
 		MaxIdleConns:    5,
 		ConnMaxLifetime: time.Hour,
@@ -31,6 +40,11 @@ func DefaultConfig() *Config {
 
 // Connect створює підключення до SQLite БД.
 func Connect(config *Config) (*sql.DB, error) {
+	// Крок 1: Створюємо директорію для БД, якщо вона не існує
+	dbDir := filepath.Dir(config.Path)
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		return nil, fmt.Errorf("не вдалося створити директорію для БД: %w", err)
+	}
 	// DSN для SQLite з оптимізаціями
 	dsn := fmt.Sprintf(
 		"file:%s?cache=shared&mode=rwc&_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000&_foreign_keys=ON",
