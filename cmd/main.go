@@ -15,7 +15,7 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/infrastructure/persistence/sqlite"
 	"osbb-accounting/infrastructure/security"
-	"osbb-accounting/presentation/fyne/auth"
+	"osbb-accounting/presentation/fyne/screens"
 )
 
 func main() {
@@ -56,7 +56,7 @@ func main() {
 	)
 
 	// 6. Створення AuthManager
-	authManager := auth.NewAuthManager(myApp, authService)
+	authManager := screens.NewAuthManager(myApp, authService)
 
 	// 7. Налаштування callbacks
 	authManager.OnLoginSuccess(func() {
@@ -82,7 +82,7 @@ func main() {
 }
 
 // showMainScreen показує головний екран після успішного входу.
-func showMainScreen(window fyne.Window, authManager *auth.AuthManager) {
+func showMainScreen(window fyne.Window, authManager *screens.AuthManager) {
 	user := authManager.GetCurrentUser()
 
 	// Привітання
