@@ -27,3 +27,28 @@ tests-c:	# Тести з покриттям
 
 tests-p:	# Тести конкретного пакету
 	go test ./service
+
+# Міграції
+migrate:
+	go run ./cmd/migrate/main.go migrate
+
+migrate-rollback:
+	go run ./cmd/migrate/main.go rollback
+
+migrate-validate:
+	go run ./cmd/migrate/main.go validate
+
+db-version:
+	go run ./cmd/migrate/main.go version
+
+# Швидке виправлення проблеми
+migrate-repair:
+	go run ./cmd/migrate/main.go repair
+
+# Повний скидання БД (ВИДАЛЯЄ ВСІ ДАНІ!)
+migrate-reset:
+	go run ./cmd/migrate/main.go reset
+
+# Статус міграцій
+migrate-status:
+	go run ./cmd/migrate/main.go status

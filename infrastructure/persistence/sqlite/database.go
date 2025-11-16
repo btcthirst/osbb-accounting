@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"osbb-accounting/infrastructure/persistence/sqlite/migrations"
 	"path/filepath"
 	"time"
 
@@ -38,13 +39,14 @@ func DefaultConfig() *Config {
 	}
 }
 
-// Connect створює підключення до SQLite БД.
+// Connect створює підключення до SQLite БД та виконує міграції.
 func Connect(config *Config) (*sql.DB, error) {
-	// Крок 1: Створюємо директорію для БД, якщо вона не існує
+	// Крок 1: Створюємо директорію для БД
 	dbDir := filepath.Dir(config.Path)
 	if err := os.MkdirAll(dbDir, 0755); err != nil {
-		return nil, fmt.Errorf("не вдалося створити директорію для БД: %w", err)
+		return nil, fmt.Errorf("failed to create database directory: %w", err)
 	}
+
 	// DSN для SQLite з оптимізаціями
 	dsn := fmt.Sprintf(
 		"file:%s?cache=shared&mode=rwc&_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=5000&_foreign_keys=ON",
@@ -72,6 +74,12 @@ func Connect(config *Config) (*sql.DB, error) {
 	if err := initializePragmas(db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to initialize pragmas: %w", err)
+	}
+
+	// КРИТИЧНО: Виконуємо міграції
+	if err := migrations.RunMigrations(db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	return db, nil
