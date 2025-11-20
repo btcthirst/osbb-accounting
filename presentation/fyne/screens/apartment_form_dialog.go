@@ -20,7 +20,7 @@ import (
 // ApartmentFormDialog - діалог для створення/редагування квартири.
 type ApartmentFormDialog struct {
 	window            fyne.Window
-	apartmentService  *service.ApartmentService
+	apartmentService  service.ApartmentServiceInterface
 	authManager       *AuthManager
 	existingApartment *apartment.ApartmentOutput
 
@@ -44,7 +44,7 @@ type ApartmentFormDialog struct {
 // NewApartmentFormDialog створює новий діалог.
 func NewApartmentFormDialog(
 	window fyne.Window,
-	apartmentService *service.ApartmentService,
+	apartmentService service.ApartmentServiceInterface,
 	authManager *AuthManager,
 	existingApartment *apartment.ApartmentOutput,
 ) *ApartmentFormDialog {

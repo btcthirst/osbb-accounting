@@ -8,6 +8,15 @@ import (
 	"osbb-accounting/domain/repository"
 )
 
+type ApartmentServiceInterface interface {
+	Create(context.Context, apartment.CreateApartmentInput) (*apartment.ApartmentOutput, error)
+	Get(context.Context, apartment.GetApartmentInput) (*apartment.ApartmentOutput, error)
+	Update(context.Context, apartment.UpdateApartmentInput) (*apartment.ApartmentOutput, error)
+	Delete(context.Context, apartment.DeleteApartmentInput) (*apartment.DeleteApartmentOutput, error)
+	List(context.Context, apartment.ListApartmentsInput) (*apartment.ListApartmentsOutput, error)
+	GetStatistics(context.Context, apartment.GetApartmentStatisticsInput) (*apartment.ApartmentStatisticsOutput, error)
+}
+
 // ApartmentService - фасад для всіх операцій з квартирами.
 type ApartmentService struct {
 	createApartment *apartment.CreateApartmentUseCase

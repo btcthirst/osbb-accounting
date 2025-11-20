@@ -4,7 +4,6 @@ package service
 import (
 	"context"
 
-	"osbb-accounting/application/usecase/osbb"
 	"osbb-accounting/application/usecase/owner"
 	"osbb-accounting/domain/repository"
 )
@@ -65,37 +64,3 @@ func (s *OwnerService) Search(ctx context.Context, input owner.SearchOwnersInput
 }
 
 // ============================================================================
-
-// OSBBService - фасад для операцій з ОСББ.
-type OSBBService struct {
-	getOSBB    *osbb.GetOSBBUseCase
-	createOSBB *osbb.CreateOSBBUseCase
-	updateOSBB *osbb.UpdateOSBBUseCase
-}
-
-// NewOSBBService створює новий OSBBService.
-func NewOSBBService(
-	osbbRepo repository.OSBBRepository,
-	permissionRepo repository.PermissionRepository,
-) *OSBBService {
-	return &OSBBService{
-		getOSBB:    osbb.NewGetOSBBUseCase(osbbRepo, permissionRepo),
-		createOSBB: osbb.NewCreateOSBBUseCase(osbbRepo, permissionRepo),
-		updateOSBB: osbb.NewUpdateOSBBUseCase(osbbRepo, permissionRepo),
-	}
-}
-
-// Get отримує дані ОСББ.
-func (s *OSBBService) Get(ctx context.Context, input osbb.GetOSBBInput) (*osbb.GetOSBBOutput, error) {
-	return s.getOSBB.Execute(ctx, input)
-}
-
-// Create створює організацію ОСББ.
-func (s *OSBBService) Create(ctx context.Context, input osbb.CreateOSBBInput) (*osbb.GetOSBBOutput, error) {
-	return s.createOSBB.Execute(ctx, input)
-}
-
-// Update оновлює дані ОСББ.
-func (s *OSBBService) Update(ctx context.Context, input osbb.UpdateOSBBInput) (*osbb.GetOSBBOutput, error) {
-	return s.updateOSBB.Execute(ctx, input)
-}
