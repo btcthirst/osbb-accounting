@@ -1,5 +1,5 @@
 // presentation/fyne/auth/auth_manager.go
-package screens
+package auth
 
 import (
 	"context"

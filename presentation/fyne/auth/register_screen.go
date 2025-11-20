@@ -1,5 +1,5 @@
 // presentation/fyne/screens/register_screen.go
-package screens
+package auth
 
 import (
 	"context"

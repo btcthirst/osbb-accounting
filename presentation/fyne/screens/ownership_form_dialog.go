@@ -18,6 +18,7 @@ import (
 	"osbb-accounting/application/usecase/ownership"
 	"osbb-accounting/domain/entity"
 	domainErrors "osbb-accounting/domain/errors"
+	"osbb-accounting/presentation/fyne/auth"
 )
 
 // OwnershipFormDialog - діалог для створення/редагування частки власності.
@@ -26,7 +27,7 @@ type OwnershipFormDialog struct {
 	ownershipService *service.OwnershipService
 	ownerService     *service.OwnerService
 	apartmentService *service.ApartmentService
-	authManager      *AuthManager
+	authManager      *auth.AuthManager
 	existingShare    *ownership.OwnershipShareDetailsOutput
 
 	// UI елементи
@@ -63,7 +64,7 @@ func NewOwnershipFormDialog(
 	ownershipService *service.OwnershipService,
 	ownerService *service.OwnerService,
 	apartmentService *service.ApartmentService,
-	authManager *AuthManager,
+	authManager *auth.AuthManager,
 	existingShare *ownership.OwnershipShareDetailsOutput,
 ) *OwnershipFormDialog {
 	d := &OwnershipFormDialog{

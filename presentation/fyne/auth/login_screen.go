@@ -1,5 +1,5 @@
 // presentation/fyne/screens/login_screen.go
-package screens
+package auth
 
 import (
 	"context"
@@ -140,10 +140,10 @@ func (s *LoginScreen) Render() fyne.CanvasObject {
 
 	// Padding навколо форми
 	return container.NewPadded(
-		container.NewMax(
+		container.NewStack(
 			container.NewCenter(
 				container.New(
-					layout.NewMaxLayout(),
+					layout.NewStackLayout(),
 					widget.NewCard("", "", content),
 				),
 			),
@@ -281,5 +281,6 @@ func (s *LoginScreen) Clear() {
 
 // Focus встановлює фокус на поле логіну.
 func (s *LoginScreen) Focus() {
-	s.usernameEntry.FocusGained()
+	s.window.Canvas().Focus(s.usernameEntry)
+	//s.usernameEntry.FocusGained()
 }

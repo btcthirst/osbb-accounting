@@ -16,6 +16,7 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/ownership"
 	"osbb-accounting/domain/entity"
+	"osbb-accounting/presentation/fyne/auth"
 )
 
 // OwnershipSharesScreen представляє екран управління частками власності.
@@ -24,7 +25,7 @@ type OwnershipSharesScreen struct {
 	apartmentService *service.ApartmentService
 	ownerService     *service.OwnerService
 	ownershipService *service.OwnershipService
-	authManager      *AuthManager
+	authManager      *auth.AuthManager
 
 	// UI елементи
 	searchEntry     *widget.Entry
@@ -50,7 +51,7 @@ func NewOwnershipSharesScreen(
 	apaertmentService *service.ApartmentService,
 	ownerService *service.OwnerService,
 	ownershipService *service.OwnershipService,
-	authManager *AuthManager,
+	authManager *auth.AuthManager,
 ) *OwnershipSharesScreen {
 	screen := &OwnershipSharesScreen{
 		window:           window,
@@ -68,6 +69,7 @@ func NewOwnershipSharesScreen(
 
 // buildUI створює інтерфейс екрану.
 func (s *OwnershipSharesScreen) buildUI() {
+	// 1. Спочатку ініціалізуємо всі віджети, щоб уникнути nil pointer у колбеках
 	// Пошук
 	s.searchEntry = widget.NewEntry()
 	s.searchEntry.SetPlaceHolder("🔍 Пошук за власником або квартирою...")
@@ -86,7 +88,6 @@ func (s *OwnershipSharesScreen) buildUI() {
 	}, func(value string) {
 		s.applyFilters()
 	})
-	s.filterSelect.SetSelected("Тільки активні зараз")
 
 	// Фільтр за квартирою
 	s.apartmentFilter = widget.NewEntry()
@@ -118,6 +119,10 @@ func (s *OwnershipSharesScreen) buildUI() {
 
 	// Таблиця
 	s.buildTable()
+
+	// 2. Встановлюємо дефолтні значення, які можуть тригерити колбеки
+	// Робимо це в самому кінці, коли всі поля (searchEntry, apartmentFilter, ownerFilter) вже існують
+	s.filterSelect.SetSelected("Тільки активні зараз")
 }
 
 // buildTable створює таблицю з частками власності.

@@ -15,13 +15,14 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/owner"
 	domainErrors "osbb-accounting/domain/errors"
+	"osbb-accounting/presentation/fyne/auth"
 )
 
 // OwnerFormDialog - діалог для створення/редагування власника.
 type OwnerFormDialog struct {
 	window        fyne.Window
 	ownerService  *service.OwnerService
-	authManager   *AuthManager
+	authManager   *auth.AuthManager
 	existingOwner *owner.OwnerOutput // nil для створення, заповнено для редагування
 
 	// UI елементи
@@ -48,7 +49,7 @@ type OwnerFormDialog struct {
 func NewOwnerFormDialog(
 	window fyne.Window,
 	ownerService *service.OwnerService,
-	authManager *AuthManager,
+	authManager *auth.AuthManager,
 	existingOwner *owner.OwnerOutput,
 ) *OwnerFormDialog {
 	d := &OwnerFormDialog{

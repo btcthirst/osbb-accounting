@@ -15,13 +15,14 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/apartment"
 	domainErrors "osbb-accounting/domain/errors"
+	"osbb-accounting/presentation/fyne/auth"
 )
 
 // ApartmentFormDialog - діалог для створення/редагування квартири.
 type ApartmentFormDialog struct {
 	window            fyne.Window
 	apartmentService  service.ApartmentServiceInterface
-	authManager       *AuthManager
+	authManager       *auth.AuthManager
 	existingApartment *apartment.ApartmentOutput
 
 	// UI елементи
@@ -45,7 +46,7 @@ type ApartmentFormDialog struct {
 func NewApartmentFormDialog(
 	window fyne.Window,
 	apartmentService service.ApartmentServiceInterface,
-	authManager *AuthManager,
+	authManager *auth.AuthManager,
 	existingApartment *apartment.ApartmentOutput,
 ) *ApartmentFormDialog {
 	d := &ApartmentFormDialog{

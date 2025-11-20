@@ -15,13 +15,14 @@ import (
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/owner"
+	"osbb-accounting/presentation/fyne/auth"
 )
 
 // OwnersScreen представляє екран управління власниками.
 type OwnersScreen struct {
 	window       fyne.Window
 	ownerService *service.OwnerService
-	authManager  *AuthManager
+	authManager  *auth.AuthManager
 
 	// UI елементи
 	searchEntry   *widget.Entry
@@ -43,7 +44,7 @@ type OwnersScreen struct {
 func NewOwnersScreen(
 	window fyne.Window,
 	ownerService *service.OwnerService,
-	authManager *AuthManager,
+	authManager *auth.AuthManager,
 ) *OwnersScreen {
 	screen := &OwnersScreen{
 		window:       window,
@@ -80,7 +81,6 @@ func (s *OwnersScreen) buildUI() {
 	}, func(value string) {
 		s.applyFilters()
 	})
-	s.filterSelect.SetSelected("Всі власники")
 
 	// Кнопка створення
 	s.createButton = widget.NewButtonWithIcon("Додати власника", theme.ContentAddIcon(), func() {
@@ -95,6 +95,9 @@ func (s *OwnersScreen) buildUI() {
 
 	// Таблиця
 	s.buildTable()
+
+	// Перенесено вниз щоб уникнути nil pointer
+	s.filterSelect.SetSelected("Всі власники")
 }
 
 // buildTable створює таблицю з власниками.
