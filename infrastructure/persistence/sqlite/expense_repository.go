@@ -424,11 +424,7 @@ func (r *ExpenseRepository) GetStatistics(ctx context.Context, filter repository
 			SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending,
 			SUM(CASE WHEN payment_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
 			SUM(CASE WHEN approved_by IS NOT NULL THEN 1 ELSE 0 END) as approved_count,
-			SUM(CASE WHEN payment_status = 'partially_paid' THEN 1 ELSE 0 END) as partially_paid,
-			SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as fully_paid,
-			SUM(CASE WHEN payment_status = 'pending' THEN 1 ELSE 0 END) as pending,
-			SUM(CASE WHEN payment_status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
-			SUM(CASE WHEN approved_by IS NOT NULL THEN 1 ELSE 0 END) as approved_count,
+
 			SUM(CASE WHEN approved_by IS NULL THEN 1 ELSE 0 END) as not_approved_count
 		FROM expenses
 		WHERE 1=1
