@@ -96,7 +96,7 @@ vet: ## Аналізує код на помилки
 lint: ## Лінтинг (golangci-lint)
 	@echo "🧠 Лінтинг..."
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run; \
+		golangci-lint run --timeout=5m; \
 	else \
 		echo "⚠️  golangci-lint не знайдено. Встановіть: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
 	fi
