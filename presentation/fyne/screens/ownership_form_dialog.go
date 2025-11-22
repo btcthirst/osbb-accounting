@@ -24,9 +24,9 @@ import (
 // OwnershipFormDialog - діалог для створення/редагування частки власності.
 type OwnershipFormDialog struct {
 	window           fyne.Window
-	ownershipService *service.OwnershipService
-	ownerService     *service.OwnerService
-	apartmentService *service.ApartmentService
+	ownershipService service.OwnershipServiceInterface
+	ownerService     service.OwnerServiceInterface
+	apartmentService service.ApartmentServiceInterface
 	authManager      *auth.AuthManager
 	existingShare    *ownership.OwnershipShareDetailsOutput
 
@@ -61,9 +61,9 @@ type OwnershipFormDialog struct {
 // NewOwnershipFormDialog створює новий діалог.
 func NewOwnershipFormDialog(
 	window fyne.Window,
-	ownershipService *service.OwnershipService,
-	ownerService *service.OwnerService,
-	apartmentService *service.ApartmentService,
+	ownershipService service.OwnershipServiceInterface,
+	ownerService service.OwnerServiceInterface,
+	apartmentService service.ApartmentServiceInterface,
 	authManager *auth.AuthManager,
 	existingShare *ownership.OwnershipShareDetailsOutput,
 ) *OwnershipFormDialog {

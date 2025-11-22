@@ -1,4 +1,4 @@
-// infrastructure/persistence/sqlite/migrations/migrations.go
+// migrations/migrations.go
 package migrations
 
 import (

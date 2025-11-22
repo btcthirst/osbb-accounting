@@ -6,7 +6,7 @@ import (
 	"osbb-accounting/domain/repository"
 )
 
-type OSBBServiceI interface {
+type OSBBServiceInterface interface {
 	Create(ctx context.Context, input osbb.CreateOSBBInput) (*osbb.GetOSBBOutput, error)
 	Update(ctx context.Context, input osbb.UpdateOSBBInput) (*osbb.GetOSBBOutput, error)
 	Get(ctx context.Context, input osbb.GetOSBBInput) (*osbb.GetOSBBOutput, error)

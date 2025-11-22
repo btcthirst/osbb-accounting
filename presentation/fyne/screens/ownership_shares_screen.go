@@ -22,9 +22,9 @@ import (
 // OwnershipSharesScreen представляє екран управління частками власності.
 type OwnershipSharesScreen struct {
 	window           fyne.Window
-	apartmentService *service.ApartmentService
-	ownerService     *service.OwnerService
-	ownershipService *service.OwnershipService
+	apartmentService service.ApartmentServiceInterface
+	ownerService     service.OwnerServiceInterface
+	ownershipService service.OwnershipServiceInterface
 	authManager      *auth.AuthManager
 
 	// UI елементи
@@ -48,9 +48,9 @@ type OwnershipSharesScreen struct {
 // NewOwnershipSharesScreen створює новий екран часток власності.
 func NewOwnershipSharesScreen(
 	window fyne.Window,
-	apaertmentService *service.ApartmentService,
-	ownerService *service.OwnerService,
-	ownershipService *service.OwnershipService,
+	apaertmentService service.ApartmentServiceInterface,
+	ownerService service.OwnerServiceInterface,
+	ownershipService service.OwnershipServiceInterface,
 	authManager *auth.AuthManager,
 ) *OwnershipSharesScreen {
 	screen := &OwnershipSharesScreen{

@@ -21,7 +21,7 @@ import (
 // OwnersScreen представляє екран управління власниками.
 type OwnersScreen struct {
 	window       fyne.Window
-	ownerService *service.OwnerService
+	ownerService service.OwnerServiceInterface
 	authManager  *auth.AuthManager
 
 	// UI елементи
@@ -43,7 +43,7 @@ type OwnersScreen struct {
 // NewOwnersScreen створює новий екран власників.
 func NewOwnersScreen(
 	window fyne.Window,
-	ownerService *service.OwnerService,
+	ownerService service.OwnerServiceInterface,
 	authManager *auth.AuthManager,
 ) *OwnersScreen {
 	screen := &OwnersScreen{

@@ -133,7 +133,7 @@ func showMainScreen(
 
 	// --- Content Container ---
 	// Це контейнер, в якому буде змінюватись вміст при кліку на меню
-	contentContainer := container.NewMax()
+	contentContainer := container.NewStack()
 
 	// Початковий екран - Dashboard (Заглушка)
 	dashboardLabel := widget.NewLabel("Ласкаво просимо до системи управління ОСББ!")

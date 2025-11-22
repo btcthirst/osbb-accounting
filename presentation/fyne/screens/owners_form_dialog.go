@@ -21,7 +21,7 @@ import (
 // OwnerFormDialog - діалог для створення/редагування власника.
 type OwnerFormDialog struct {
 	window        fyne.Window
-	ownerService  *service.OwnerService
+	ownerService  service.OwnerServiceInterface
 	authManager   *auth.AuthManager
 	existingOwner *owner.OwnerOutput // nil для створення, заповнено для редагування
 
@@ -48,7 +48,7 @@ type OwnerFormDialog struct {
 // NewOwnerFormDialog створює новий діалог.
 func NewOwnerFormDialog(
 	window fyne.Window,
-	ownerService *service.OwnerService,
+	ownerService service.OwnerServiceInterface,
 	authManager *auth.AuthManager,
 	existingOwner *owner.OwnerOutput,
 ) *OwnerFormDialog {

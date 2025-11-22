@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
-	"osbb-accounting/infrastructure/persistence/sqlite/migrations"
+	"osbb-accounting/migrations"
 	"path/filepath"
 	"time"
 

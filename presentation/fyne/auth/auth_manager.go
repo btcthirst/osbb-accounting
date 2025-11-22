@@ -16,7 +16,7 @@ import (
 // AuthManager управляє станом аутентифікації в додатку.
 type AuthManager struct {
 	app         fyne.App
-	authService *service.AuthService
+	authService service.AuthServiceInterface
 
 	// Стан аутентифікації
 	mu            sync.RWMutex
@@ -37,7 +37,7 @@ type AuthManager struct {
 }
 
 // NewAuthManager створює новий AuthManager.
-func NewAuthManager(application fyne.App, authService *service.AuthService) *AuthManager {
+func NewAuthManager(application fyne.App, authService service.AuthServiceInterface) *AuthManager {
 	return &AuthManager{
 		app:            application,
 		authService:    authService,

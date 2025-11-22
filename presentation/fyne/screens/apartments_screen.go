@@ -19,7 +19,7 @@ import (
 
 type ApartmentsScreen struct {
 	window           fyne.Window
-	apartmentService *service.ApartmentService
+	apartmentService service.ApartmentServiceInterface
 	authManager      *auth.AuthManager
 
 	// UI елементи
@@ -41,7 +41,7 @@ type ApartmentsScreen struct {
 
 func NewApartmentsScreen(
 	window fyne.Window,
-	apartmentService *service.ApartmentService,
+	apartmentService service.ApartmentServiceInterface,
 	authManager *auth.AuthManager,
 ) *ApartmentsScreen {
 	screen := &ApartmentsScreen{

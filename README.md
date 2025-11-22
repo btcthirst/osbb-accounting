@@ -10,7 +10,7 @@
 - ✅ **Управління квартирами** - повний CRUD з пошуком та статистикою
 - ✅ **Облік платежів** - додавання платежів, нарахувань, автоматичні місячні нарахування
 - ✅ **Розрахунок боргів** - автоматичний підрахунок балансу кожної квартири
-- ✅ **Clean Architecture** з Repository Pattern (готовність до міграції на PostgreSQL)
+- ✅ **Clean Architecture** з Repository Pattern
 - ✅ **Кросплатформність** - працює на Windows, macOS, Linux
 - 🔄 Звітність та аналітика (в розробці)
 - 🔄 Експорт у Excel (в розробці)
@@ -19,7 +19,7 @@
 
 - **Мова:** Go 1.21+
 - **UI Framework:** Fyne v2.4.3
-- **База Даних:** SQLite 3 (з можливістю міграції на PostgreSQL)
+- **База Даних:** SQLite 3
 - **Безпека:** BCrypt для хешування паролів
 - **Архітектура:** Clean Architecture + Repository Pattern
 
@@ -42,22 +42,29 @@
 
 ### Швидка Діагностика
 
-Якщо не вдається увійти з `admin` / `admin123`:
+Якщо не вдається увійти з `admin` / `Admin123!`:
 
 **Варіант 1: Діагностичний скрипт**
 ```bash
-go run debug/test_auth.go
+go run debug/test_auth.go <username> <password>
+```
+Приклад:
+```bash
+go run debug/test_auth.go admin Admin123!
 ```
 
 Скрипт автоматично:
 - ✓ Перевірить наявність користувачів в БД
 - ✓ Протестує хешування BCrypt
 - ✓ Перевірить роботу аутентифікації
-- ✓ Створить адміністратора, якщо потрібно
 
 **Варіант 2: Скидання пароля**
 ```bash
-go run debug/reset_password.go
+go run debug/reset_password/reset_password.go <username> <new_password>
+```
+Приклад:
+```bash
+go run debug/reset_password/reset_password.go admin NewPassword123!
 ```
 
 Інтерактивний скрипт для зміни пароля будь-якого користувача.
@@ -68,9 +75,9 @@ go run debug/reset_password.go
 rm -rf ~/.osbb-accounting/
 
 # 2. Перезапустіть додаток
-go run main.go
+go run cmd/main.go
 
-# 3. Увійдіть: admin / admin123
+# 3. Увійдіть: admin / Admin123!
 ```
 
 ### Типові Причини Помилки Входу
@@ -97,7 +104,7 @@ go mod download
 ### 3. Запуск додатку
 
 ```bash
-go run main.go
+go run cmd/main.go
 ```
 
 При першому запуску автоматично:
@@ -110,7 +117,7 @@ go run main.go
 
 **Дефолтні облікові дані:**
 - **Ім'я користувача:** `admin`
-- **Пароль:** `admin123`
+- **Пароль:** `Admin123!`
 
 ⚠️ **ВАЖЛИВО:** Змініть пароль після першого входу!
 
@@ -118,31 +125,40 @@ go run main.go
 
 ```
 osbb-accounting/
-├── main.go                          # Точка входу
+├── cmd/                             # Точки входу
+│   └── main.go
 ├── go.mod                           # Go модулі
 │
 ├── config/                          # Конфігурація
 │   └── config.go
 │
 ├── domain/                          # Domain Layer (бізнес-об'єкти)
-│   ├── user.go
-│   └── errors.go
+│   ├── entity/                      # Сутності (User, Apartment, etc.)
+│   ├── repository/                  # Інтерфейси репозиторіїв
+│   └── service/                     # Інтерфейси сервісів
 │
-├── repository/                      # Data Access Layer
-│   ├── user_repository.go           # Інтерфейс
-│   └── sqlite/
-│       ├── user_repository_impl.go  # SQLite реалізація
-│       └── connection.go
+├── application/                     # Application Layer
+│   ├── service/                     # Реалізація сервісів (Facades)
+│   └── usecase/                     # Use Cases (Business Logic)
 │
-├── service/                         # Business Logic Layer
-│   └── auth_service.go
+├── infrastructure/                  # Infrastructure Layer
+│   ├── persistence/                 # Реалізація репозиторіїв (SQLite)
+│   └── security/                    # Криптографія, токени
 │
-├── ui/                              # Presentation Layer (Fyne)
-│   ├── login_screen.go
-│   └── main_window.go
+├── presentation/                    # Presentation Layer (UI)
+│   └── fyne/                        # Fyne UI реалізація
+│       ├── auth/                    # Екрани аутентифікації
+│       └── screens/                 # Екрани додатку
 │
-└── migrations/                      # SQL міграції
-    └── 001_init_schema.sql
+├── migrations/                      # SQL міграції та логіка (Go + SQL)
+│   ├── 001_init_schema.sql
+│   ├── migrations.go
+│   └── runner.go
+│
+└── debug/                           # Скрипти для налагодження
+    ├── test_auth.go
+    └── reset_password/
+        └── reset_password.go
 ```
 
 ## 📊 Архітектура
@@ -151,34 +167,37 @@ osbb-accounting/
 
 ```
 ┌─────────────────────────────────────────┐
-│         UI Layer (Fyne)                 │
-│  ┌─────────────┐  ┌──────────────┐     │
-│  │ Login Screen│  │  Main Window │     │
-│  └─────────────┘  └──────────────┘     │
+│         Presentation Layer (Fyne)       │
+│  ┌─────────────┐  ┌──────────────┐      │
+│  │ Login Screen│  │  Main Window │      │
+│  └─────────────┘  └──────────────┘      │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
-│      Business Logic Layer               │
-│  ┌──────────────┐  ┌──────────────┐    │
-│  │ AuthService  │  │ UserService  │    │
-│  └──────────────┘  └──────────────┘    │
+│      Application Layer (Use Cases)      │
+│  ┌──────────────┐  ┌──────────────┐     │
+│  │ AuthService  │  │ UserService  │     │
+│  └──────────────┘  └──────────────┘     │
 └──────────────┬──────────────────────────┘
                │
 ┌──────────────▼──────────────────────────┐
-│   Data Access Layer (Repository)        │
+│         Domain Layer (Entities)         │
+│  ┌──────────────┐  ┌──────────────┐     │
+│  │     User     │  │  Apartment   │     │
+│  └──────────────┘  └──────────────┘     │
+└──────────────┬──────────────────────────┘
+               │
+┌──────────────▼──────────────────────────┐
+│      Infrastructure Layer (DB/API)      │
 │  ┌─────────────────────────────────┐    │
-│  │  UserRepository (Interface)     │    │
+│  │  SQLiteRepository (Impl)        │    │
 │  └──────────────┬──────────────────┘    │
-│                 │                        │
-│  ┌──────────────▼──────────────────┐    │
-│  │ SQLiteUserRepository (Impl)     │    │
-│  └──────────────┬──────────────────┘    │
-└─────────────────┼────────────────────────┘
+└─────────────────┼───────────────────────┘
                   │
-┌─────────────────▼────────────────────────┐
-│           SQLite Database                │
-│         (~/.osbb-accounting/osbb.db)     │
-└──────────────────────────────────────────┘
+┌─────────────────▼───────────────────────┐
+│           SQLite Database               │
+│         (~/.osbb-accounting/osbb.db)    │
+└─────────────────────────────────────────┘
 ```
 
 ### Ключові Принципи:
@@ -213,7 +232,7 @@ go test ./...
 go test -cover ./...
 
 # Тести конкретного пакету
-go test ./service
+go test ./application/service/...
 ```
 
 ## 📦 Збірка
@@ -221,20 +240,20 @@ go test ./service
 ### Компіляція для поточної ОС
 
 ```bash
-go build -o osbb-accounting
+go build -o osbb-accounting cmd/main.go
 ```
 
 ### Кросплатформна збірка
 
 ```bash
 # Windows
-GOOS=windows GOARCH=amd64 go build -o osbb-accounting.exe
+GOOS=windows GOARCH=amd64 go build -o osbb-accounting.exe cmd/main.go
 
 # macOS
-GOOS=darwin GOARCH=amd64 go build -o osbb-accounting-mac
+GOOS=darwin GOARCH=amd64 go build -o osbb-accounting-mac cmd/main.go
 
 # Linux
-GOOS=linux GOARCH=amd64 go build -o osbb-accounting-linux
+GOOS=linux GOARCH=amd64 go build -o osbb-accounting-linux cmd/main.go
 ```
 
 ### Збірка з Fyne інструментами
@@ -248,33 +267,6 @@ fyne package -os windows -icon icon.png
 fyne package -os darwin -icon icon.png
 fyne package -os linux -icon icon.png
 ```
-
-## 📝 Наступні Кроки Розробки
-
-### ~~Фаза 2: Управління Квартирами~~ ✅ ЗАВЕРШЕНО
-- [x] Domain модель Apartment
-- [x] Repository для квартир
-- [x] UI для додавання/редагування квартир
-- [x] Пошук та фільтрація
-- [x] Статистика по квартирах
-
-### Фаза 3: Облік Платежів
-- [ ] Domain модель Payment
-- [ ] Repository для платежів
-- [ ] UI для введення платежів
-- [ ] Розрахунок залишку заборгованості
-
-### Фаза 4: Звітність
-- [ ] Звіт про борги по квартирах
-- [ ] Загальний фінансовий звіт
-- [ ] Експорт у Excel (XLSX)
-- [ ] Фільтрація та пошук
-
-### Фаза 5: Міграція на PostgreSQL
-- [ ] PostgreSQL реалізація Repository
-- [ ] Міграційні скрипти
-- [ ] Конфігурація підключення
-- [ ] Тестування продуктивності
 
 ## 🐛 Відомі Обмеження MVP
 

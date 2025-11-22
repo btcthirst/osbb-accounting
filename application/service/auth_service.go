@@ -10,6 +10,19 @@ import (
 	"osbb-accounting/domain/service"
 )
 
+type AuthServiceInterface interface {
+	Register(ctx context.Context, input auth.RegisterUserInput) (*auth.RegisterUserOutput, error)
+	Login(ctx context.Context, input auth.LoginUserInput) (*auth.LoginUserOutput, error)
+	Logout(ctx context.Context, input auth.LogoutUserInput) (*auth.LogoutUserOutput, error)
+	LogoutAll(ctx context.Context, input auth.LogoutAllUserSessionsInput) (*auth.LogoutUserOutput, error)
+	ValidateSession(ctx context.Context, input auth.ValidateSessionInput) (*auth.ValidateSessionOutput, error)
+	ChangePassword(ctx context.Context, input auth.ChangePasswordInput) (*auth.ChangePasswordOutput, error)
+	CheckPermission(ctx context.Context, input auth.CheckPermissionInput) (*auth.CheckPermissionOutput, error)
+	CheckResourcePermission(ctx context.Context, input auth.CheckResourcePermissionInput) (*auth.CheckPermissionOutput, error)
+	RequirePermission(ctx context.Context, userID int64, permissionCode string) error
+	RequireResourcePermission(ctx context.Context, userID int64, resource string, action entity.Action) error
+}
+
 // AuthService - фасад для всіх операцій аутентифікації.
 // Об'єднує всі use cases в один інтерфейс для зручності використання.
 type AuthService struct {

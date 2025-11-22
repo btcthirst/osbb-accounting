@@ -20,7 +20,7 @@ import (
 // LoginScreen представляє екран входу в систему.
 type LoginScreen struct {
 	window      fyne.Window
-	authService *service.AuthService
+	authService service.AuthServiceInterface
 
 	// UI елементи
 	usernameEntry *widget.Entry
@@ -35,7 +35,7 @@ type LoginScreen struct {
 }
 
 // NewLoginScreen створює новий екран входу.
-func NewLoginScreen(window fyne.Window, authService *service.AuthService) *LoginScreen {
+func NewLoginScreen(window fyne.Window, authService service.AuthServiceInterface) *LoginScreen {
 	screen := &LoginScreen{
 		window:      window,
 		authService: authService,

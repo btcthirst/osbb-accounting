@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"osbb-accounting/infrastructure/persistence/sqlite"
-	"osbb-accounting/infrastructure/persistence/sqlite/migrations"
+	"osbb-accounting/migrations"
 
 	_ "github.com/mattn/go-sqlite3"
 )

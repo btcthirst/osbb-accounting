@@ -1,4 +1,4 @@
-// infrastructure/persistence/sqlite/migrations/runner.go
+// migrations/runner.go
 package migrations
 
 import (

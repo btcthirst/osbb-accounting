@@ -21,7 +21,7 @@ import (
 // RegisterScreen представляє екран реєстрації.
 type RegisterScreen struct {
 	window      fyne.Window
-	authService *service.AuthService
+	authService service.AuthServiceInterface
 
 	// UI елементи
 	usernameEntry    *widget.Entry
@@ -41,7 +41,7 @@ type RegisterScreen struct {
 }
 
 // NewRegisterScreen створює новий екран реєстрації.
-func NewRegisterScreen(window fyne.Window, authService *service.AuthService) *RegisterScreen {
+func NewRegisterScreen(window fyne.Window, authService service.AuthServiceInterface) *RegisterScreen {
 	screen := &RegisterScreen{
 		window:      window,
 		authService: authService,

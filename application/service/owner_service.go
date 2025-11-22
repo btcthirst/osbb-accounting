@@ -8,6 +8,15 @@ import (
 	"osbb-accounting/domain/repository"
 )
 
+type OwnerServiceInterface interface {
+	Create(ctx context.Context, input owner.CreateOwnerInput) (*owner.OwnerOutput, error)
+	Get(ctx context.Context, input owner.GetOwnerInput) (*owner.OwnerOutput, error)
+	Update(ctx context.Context, input owner.UpdateOwnerInput) (*owner.OwnerOutput, error)
+	Delete(ctx context.Context, input owner.DeleteOwnerInput) (*owner.DeleteOwnerOutput, error)
+	List(ctx context.Context, input owner.ListOwnersInput) (*owner.ListOwnersOutput, error)
+	Search(ctx context.Context, input owner.SearchOwnersInput) ([]*owner.OwnerOutput, error)
+}
+
 // OwnerService - фасад для всіх операцій з власниками.
 type OwnerService struct {
 	createOwner  *owner.CreateOwnerUseCase

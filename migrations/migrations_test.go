@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"osbb-accounting/infrastructure/persistence/sqlite/migrations"
+	"osbb-accounting/migrations"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"

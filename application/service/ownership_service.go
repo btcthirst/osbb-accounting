@@ -8,6 +8,17 @@ import (
 	"osbb-accounting/domain/repository"
 )
 
+type OwnershipServiceInterface interface {
+	Create(ctx context.Context, input ownership.CreateOwnershipShareInput) (*ownership.OwnershipShareOutput, error)
+	Get(ctx context.Context, input ownership.GetOwnershipShareInput) (*ownership.OwnershipShareDetailsOutput, error)
+	Update(ctx context.Context, input ownership.UpdateOwnershipShareInput) (*ownership.OwnershipShareOutput, error)
+	Delete(ctx context.Context, input ownership.DeleteOwnershipShareInput) (*ownership.DeleteOwnershipShareOutput, error)
+	List(ctx context.Context, input ownership.ListOwnershipSharesInput) (*ownership.ListOwnershipSharesOutput, error)
+	GetByApartment(ctx context.Context, input ownership.GetByApartmentInput) ([]*ownership.OwnershipShareDetailsOutput, error)
+	GetByOwner(ctx context.Context, input ownership.GetByOwnerInput) ([]*ownership.OwnershipShareDetailsOutput, error)
+	CalculateRemaining(ctx context.Context, input ownership.CalculateRemainingShareInput) (*ownership.CalculateRemainingShareOutput, error)
+}
+
 // OwnershipService - фасад для всіх операцій з частками власності.
 type OwnershipService struct {
 	createShare        *ownership.CreateOwnershipShareUseCase

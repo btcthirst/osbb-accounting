@@ -8,7 +8,7 @@ import (
 
 type ExpenseCategoryServiceI interface {
 	Create(context.Context, expense_category.CreateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
-	Updete(context.Context, expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
+	Update(context.Context, expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
 	Delete(context.Context, expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error)
 	GetCategoryPath(context.Context, expense_category.GetCategoryPathInput) (*expense_category.CategoryPathOutput, error)
 	GetCategoryTree(context.Context, expense_category.GetCategoryTreeInput) ([]*expense_category.ExpenseCategoryTreeOutput, error)
@@ -20,7 +20,7 @@ type ExpenseCategoryServiceI interface {
 type ExpenseCategoryService struct {
 	createExpenseCategory *expense_category.CreateExpenseCategoryUseCase
 	updateExpenseCategory *expense_category.UpdateExpenseCategoryUseCase
-	deleteEpenseCategory  *expense_category.DeleteExpenseCategoryUseCase
+	deleteExpenseCategory *expense_category.DeleteExpenseCategoryUseCase
 	getCategoryPath       *expense_category.GetCategoryPathUseCase
 	getCategoryTree       *expense_category.GetCategoryTreeUseCase
 	getExpenseCategory    *expense_category.GetExpenseCategoryUseCase
@@ -35,7 +35,7 @@ func NewExpenseCategoryService(
 	return &ExpenseCategoryService{
 		createExpenseCategory: expense_category.NewCreateExpenseCategoryUseCase(expenseCategoryRepo, permissionRepo),
 		updateExpenseCategory: expense_category.NewUpdateExpenseCategoryUseCase(expenseCategoryRepo, permissionRepo),
-		deleteEpenseCategory:  expense_category.NewDeleteExpenseCategoryUseCase(expenseCategoryRepo, permissionRepo),
+		deleteExpenseCategory: expense_category.NewDeleteExpenseCategoryUseCase(expenseCategoryRepo, permissionRepo),
 		getCategoryPath:       expense_category.NewGetCategoryPathUseCase(expenseCategoryRepo, permissionRepo),
 		getCategoryTree:       expense_category.NewGetCategoryTreeUseCase(expenseCategoryRepo, permissionRepo),
 		getExpenseCategory:    expense_category.NewGetExpenseCategoryUseCase(expenseCategoryRepo, permissionRepo),
@@ -48,12 +48,12 @@ func (s *ExpenseCategoryService) Create(ctx context.Context, input expense_categ
 	return s.createExpenseCategory.Execute(ctx, input)
 }
 
-func (s *ExpenseCategoryService) Updete(ctx context.Context, input expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error) {
+func (s *ExpenseCategoryService) Update(ctx context.Context, input expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error) {
 	return s.updateExpenseCategory.Execute(ctx, input)
 }
 
 func (s *ExpenseCategoryService) Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error) {
-	return s.deleteEpenseCategory.Execute(ctx, input)
+	return s.deleteExpenseCategory.Execute(ctx, input)
 }
 
 func (s *ExpenseCategoryService) GetCategoryPath(ctx context.Context, input expense_category.GetCategoryPathInput) (*expense_category.CategoryPathOutput, error) {
