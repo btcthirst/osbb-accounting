@@ -95,3 +95,49 @@ func TestResetDatabase(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, count)
 }
+
+func TestRepairMigrations(t *testing.T) {
+	db := setupDB(t)
+	defer db.Close()
+
+	// Run migrations normally first
+	err := migrations.RunMigrations(db)
+	require.NoError(t, err)
+
+	// Manually insert an orphaned migration record
+	_, err = db.Exec("INSERT INTO schema_migrations (version, description, checksum) VALUES (?, ?, ?)", "999", "Orphaned Migration", "fake-checksum")
+	require.NoError(t, err)
+
+	// Verify it exists
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM schema_migrations WHERE version = '999'").Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+
+	// Run RepairMigrations
+	err = migrations.RepairMigrations(db)
+	require.NoError(t, err)
+
+	// Verify it's gone
+	err = db.QueryRow("SELECT COUNT(*) FROM schema_migrations WHERE version = '999'").Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+}
+
+func TestIntegrityCheckFailed(t *testing.T) {
+	db := setupDB(t)
+	defer db.Close()
+
+	// Run migrations normally first
+	err := migrations.RunMigrations(db)
+	require.NoError(t, err)
+
+	// Tamper with a checksum
+	_, err = db.Exec("UPDATE schema_migrations SET checksum = 'tampered' WHERE version = '001'")
+	require.NoError(t, err)
+
+	// Run migrations again, should fail integrity check
+	err = migrations.RunMigrations(db)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "checksum mismatch")
+}
