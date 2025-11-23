@@ -9,12 +9,12 @@ import (
 )
 
 type ApartmentServiceInterface interface {
-	Create(context.Context, apartment.CreateApartmentInput) (*apartment.ApartmentOutput, error)
-	Get(context.Context, apartment.GetApartmentInput) (*apartment.ApartmentOutput, error)
-	Update(context.Context, apartment.UpdateApartmentInput) (*apartment.ApartmentOutput, error)
-	Delete(context.Context, apartment.DeleteApartmentInput) (*apartment.DeleteApartmentOutput, error)
-	List(context.Context, apartment.ListApartmentsInput) (*apartment.ListApartmentsOutput, error)
-	GetStatistics(context.Context, apartment.GetApartmentStatisticsInput) (*apartment.ApartmentStatisticsOutput, error)
+	Create(ctx context.Context, input apartment.CreateApartmentInput) (*apartment.ApartmentOutput, error)
+	Get(ctx context.Context, input apartment.GetApartmentInput) (*apartment.ApartmentOutput, error)
+	Update(ctx context.Context, input apartment.UpdateApartmentInput) (*apartment.ApartmentOutput, error)
+	Delete(ctx context.Context, input apartment.DeleteApartmentInput) (*apartment.DeleteApartmentOutput, error)
+	List(ctx context.Context, input apartment.ListApartmentsInput) (*apartment.ListApartmentsOutput, error)
+	GetStatistics(ctx context.Context, input apartment.GetApartmentStatisticsInput) (*apartment.ApartmentStatisticsOutput, error)
 }
 
 // ApartmentService - фасад для всіх операцій з квартирами.

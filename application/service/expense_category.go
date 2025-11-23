@@ -7,14 +7,14 @@ import (
 )
 
 type ExpenseCategoryServiceI interface {
-	Create(context.Context, expense_category.CreateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
-	Update(context.Context, expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
-	Delete(context.Context, expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error)
-	GetCategoryPath(context.Context, expense_category.GetCategoryPathInput) (*expense_category.CategoryPathOutput, error)
-	GetCategoryTree(context.Context, expense_category.GetCategoryTreeInput) ([]*expense_category.ExpenseCategoryTreeOutput, error)
-	Get(context.Context, expense_category.GetExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
-	List(context.Context, expense_category.ListExpenseCategoriesInput) (*expense_category.ListExpenseCategoriesOutput, error)
-	MoveCategory(context.Context, expense_category.MoveCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
+	Create(ctx context.Context, input expense_category.CreateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
+	Update(ctx context.Context, input expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
+	Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error)
+	GetCategoryPath(ctx context.Context, input expense_category.GetCategoryPathInput) (*expense_category.CategoryPathOutput, error)
+	GetCategoryTree(ctx context.Context, input expense_category.GetCategoryTreeInput) ([]*expense_category.ExpenseCategoryTreeOutput, error)
+	Get(ctx context.Context, input expense_category.GetExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
+	List(ctx context.Context, input expense_category.ListExpenseCategoriesInput) (*expense_category.ListExpenseCategoriesOutput, error)
+	MoveCategory(ctx context.Context, input expense_category.MoveCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
 }
 
 type ExpenseCategoryService struct {

@@ -1,0 +1,15 @@
+app:
+  name: "OSBB Accounting"
+  environment: "dev"
+  version: "0.1.0"
+  window_title: "ОСББ Управління"
+
+database:
+  path: "./osbb.db"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: 1h
+  conn_max_idle_time: 10m
+
+security:
+  bcrypt_cost: 10
