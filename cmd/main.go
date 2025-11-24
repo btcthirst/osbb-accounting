@@ -59,6 +59,7 @@ func main() {
 	apartmentRepo := sqlite.NewApartmentRepository(db)
 	ownershipRepo := sqlite.NewOwnershipShareRepository(db)
 	chargeRepo := sqlite.NewChargeRepository(db)
+	paymentRepo := sqlite.NewPaymentRepository(db)
 	// expenseRepo := sqlite.NewExpenseRepository(db) // Якщо буде реалізовано
 
 	// 4. Створення services (Application Layer)
@@ -94,13 +95,18 @@ func main() {
 		permissionRepo,
 	)
 
+	paymentService := service.NewPaymentService(
+		paymentRepo,
+		permissionRepo,
+	)
+
 	// 5. Створення AuthManager (Presentation Layer)
 	authManager := auth.NewAuthManager(myApp, authService)
 
 	// 6. Налаштування callbacks навігації
 	authManager.OnLoginSuccess(func() {
 		// Передаємо всі необхідні сервіси у головний екран
-		screens.ShowMainScreen(mainWindow, authManager, ownerService, apartmentService, ownershipService, chargeService)
+		screens.ShowMainScreen(mainWindow, authManager, ownerService, apartmentService, ownershipService, chargeService, paymentService)
 	})
 
 	authManager.OnLogout(func() {

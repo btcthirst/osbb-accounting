@@ -20,6 +20,7 @@ func ShowMainScreen(
 	apartmentService *service.ApartmentService,
 	ownershipService *service.OwnershipService,
 	chargeService *service.ChargeService,
+	paymentService *service.PaymentService,
 ) {
 	user := authManager.GetCurrentUser()
 
