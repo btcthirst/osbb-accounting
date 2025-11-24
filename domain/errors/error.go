@@ -105,6 +105,9 @@ const (
 	CodeInternalError  = "SYS_001"
 	CodeDatabaseError  = "SYS_002"
 	CodeOptimisticLock = "SYS_003"
+
+	// Business Logic
+	CodeOperationNotAllowed = "BIZ_001"
 )
 
 // ValidationError представляє помилку валідації з деталями про поля.

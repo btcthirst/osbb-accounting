@@ -21,6 +21,7 @@ func ShowMainScreen(
 	ownershipService *service.OwnershipService,
 	chargeService *service.ChargeService,
 	paymentService *service.PaymentService,
+	expenseService *service.ExpenseService,
 ) {
 	user := authManager.GetCurrentUser()
 
@@ -154,7 +155,19 @@ func ShowMainScreen(
 				newContent = createAccessDeniedPlaceholder()
 			}
 
-		case 6: // Налаштування
+		case 6: // Витрати
+			if authManager.HasPermission("expenses.read") {
+				screen := NewExpensesScreen(
+					window,
+					expenseService,
+					authManager,
+				)
+				newContent = screen.Render()
+			} else {
+				newContent = createAccessDeniedPlaceholder()
+			}
+
+		case 7: // Налаштування
 			screen := NewSettingsScreen(window, authManager)
 			newContent = screen.Render()
 
