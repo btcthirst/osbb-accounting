@@ -148,6 +148,10 @@ func ShowMainScreen(
 				newContent = createAccessDeniedPlaceholder()
 			}
 
+		case 6: // Налаштування
+			screen := NewSettingsScreen(window, authManager)
+			newContent = screen.Render()
+
 		default:
 			newContent = container.NewCenter(widget.NewLabel(fmt.Sprintf("Розділ '%s' в розробці", menuItems[id])))
 		}
