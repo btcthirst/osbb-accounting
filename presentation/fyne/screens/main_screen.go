@@ -101,7 +101,13 @@ func ShowMainScreen(
 
 		switch id {
 		case 0: // Головна
-			newContent = container.NewCenter(widget.NewLabel("📊 Дашборд (в розробці)"))
+			screen := NewDashboardScreen(
+				window,
+				chargeService,
+				paymentService,
+				authManager,
+			)
+			newContent = screen.Render()
 
 		case 1: // Власники
 			if authManager.HasPermission("owners.read") {
