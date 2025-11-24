@@ -19,6 +19,7 @@ func ShowMainScreen(
 	ownerService *service.OwnerService,
 	apartmentService *service.ApartmentService,
 	ownershipService *service.OwnershipService,
+	chargeService *service.ChargeService,
 ) {
 	user := authManager.GetCurrentUser()
 
@@ -125,6 +126,19 @@ func ShowMainScreen(
 					window,
 					apartmentService,
 					ownerService,
+					ownershipService,
+					authManager,
+				)
+				newContent = screen.Render()
+			} else {
+				newContent = createAccessDeniedPlaceholder()
+			}
+
+		case 4: // Нарахування
+			if authManager.HasPermission("charges.read") {
+				screen := NewChargesScreen(
+					window,
+					chargeService,
 					ownershipService,
 					authManager,
 				)

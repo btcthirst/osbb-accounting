@@ -1,7 +1,18 @@
 ### where we stopped
 
-- add infrastructure/persistence/sqlite/payment_repository.go
-- add infrastructure/persistence/sqlite/payment_repository_test.go
+1. 💰 Нарахування (Charges):
+Потрібен екран списку нарахувань (charges_screen.go).
+Потрібен діалог створення/редагування нарахування.
+2. 💳 Платежі (Payments):
+Потрібен екран списку платежів (payments_screen.go).
+Потрібен діалог створення/редагування платежу.
+3. ⚙️ Налаштування (Settings):
+Потрібен екран налаштувань (settings_screen.go).
+Екрани-заглушки (потребують реалізації): 
+4. 📊 Головна (Dashboard): * Зараз відображається лише текст "Дашборд (в розробці)". Потрібно додати віджети зі статистикою.
 
-- add infrastructure/persistence/sqlite/charge_repository.go +
-- add infrastructure/persistence/sqlite/charge_repository_test.go +
+Потенційно відсутні екрани (є сутності, але немає в меню): 
+5. 💸 Витрати (Expenses): * Є сутність Expense, але немає пункту в меню та екрану. 
+6. 👷 Підрядники (Contractors): * Є сутність Contractor, але немає пункту в меню та екрану.
+
+Я можу розпочати роботу над будь-яким з цих екранів. З чого бажаєте почати?
