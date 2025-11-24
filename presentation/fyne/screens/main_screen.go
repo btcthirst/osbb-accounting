@@ -22,6 +22,7 @@ func ShowMainScreen(
 	chargeService *service.ChargeService,
 	paymentService *service.PaymentService,
 	expenseService *service.ExpenseService,
+	contractorService *service.ContractorService,
 ) {
 	user := authManager.GetCurrentUser()
 
@@ -167,7 +168,19 @@ func ShowMainScreen(
 				newContent = createAccessDeniedPlaceholder()
 			}
 
-		case 7: // Налаштування
+		case 7: // Підрядники
+			if authManager.HasPermission("contractors.read") {
+				screen := NewContractorsScreen(
+					window,
+					contractorService,
+					authManager,
+				)
+				newContent = screen.Render()
+			} else {
+				newContent = createAccessDeniedPlaceholder()
+			}
+
+		case 8: // Налаштування
 			screen := NewSettingsScreen(window, authManager)
 			newContent = screen.Render()
 

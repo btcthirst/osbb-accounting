@@ -61,6 +61,7 @@ func main() {
 	chargeRepo := sqlite.NewChargeRepository(db)
 	paymentRepo := sqlite.NewPaymentRepository(db)
 	expenseRepo := sqlite.NewExpenseRepository(db)
+	contractorRepo := sqlite.NewContractorRepository(db)
 
 	// 4. Створення services (Application Layer)
 	passwordHasher := security.DefaultBCryptHasher()
@@ -105,13 +106,18 @@ func main() {
 		permissionRepo,
 	)
 
+	contractorService := service.NewContractorService(
+		contractorRepo,
+		permissionRepo,
+	)
+
 	// 5. Створення AuthManager (Presentation Layer)
 	authManager := auth.NewAuthManager(myApp, authService)
 
 	// 6. Налаштування callbacks навігації
 	authManager.OnLoginSuccess(func() {
 		// Передаємо всі необхідні сервіси у головний екран
-		screens.ShowMainScreen(mainWindow, authManager, ownerService, apartmentService, ownershipService, chargeService, paymentService, expenseService)
+		screens.ShowMainScreen(mainWindow, authManager, ownerService, apartmentService, ownershipService, chargeService, paymentService, expenseService, contractorService)
 	})
 
 	authManager.OnLogout(func() {
