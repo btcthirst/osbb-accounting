@@ -7,8 +7,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
@@ -16,6 +14,7 @@ import (
 	"osbb-accounting/application/usecase/charge"
 	"osbb-accounting/domain/entity"
 	"osbb-accounting/presentation/fyne/auth"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // ChargesScreen представляє екран управління нарахуваннями.
@@ -231,7 +230,7 @@ func (s *ChargesScreen) loadCharges() {
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка завантаження нарахувань: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка завантаження нарахувань: %v", err))
 		return
 	}
 
@@ -324,33 +323,28 @@ func (s *ChargesScreen) showChargeDetails(c *charge.ChargeOutput) {
 		details += fmt.Sprintf("\nОпис: %s\n", *c.Description)
 	}
 
-	dialog.ShowInformation("Деталі нарахування", details, s.window)
+	common.ShowInformation(s.window, "Деталі нарахування", details)
 }
 
 // showActionsMenu показує меню дій.
 func (s *ChargesScreen) showActionsMenu(c *charge.ChargeOutput) {
-	editButton := widget.NewButton("✏️ Редагувати", func() {
-		s.showEditDialog(c)
-	})
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() { s.showEditDialog(c) },
+		},
+		{
+			Label:      "🗑️ Видалити",
+			OnTap:      func() { s.confirmDelete(c) },
+			Importance: widget.DangerImportance,
+		},
+		{
+			Label: "ℹ️ Деталі",
+			OnTap: func() { s.showChargeDetails(c) },
+		},
+	}
 
-	deleteButton := widget.NewButton("🗑️ Видалити", func() {
-		s.confirmDelete(c)
-	})
-	deleteButton.Importance = widget.DangerImportance
-
-	detailsButton := widget.NewButton("ℹ️ Деталі", func() {
-		s.showChargeDetails(c)
-	})
-
-	content := container.NewVBox(
-		widget.NewLabel(fmt.Sprintf("Нарахування #%d", c.ID)),
-		layout.NewSpacer(),
-		editButton,
-		deleteButton,
-		detailsButton,
-	)
-
-	dialog.ShowCustom("Дії", "Закрити", content, s.window)
+	common.ShowActionsMenu(s.window, fmt.Sprintf("Нарахування #%d", c.ID), actions)
 }
 
 // showCreateDialog показує діалог створення.
@@ -373,15 +367,13 @@ func (s *ChargesScreen) showEditDialog(c *charge.ChargeOutput) {
 
 // confirmDelete підтверджує видалення.
 func (s *ChargesScreen) confirmDelete(c *charge.ChargeOutput) {
-	dialog.ShowConfirm(
+	common.ShowDeleteConfirmation(
+		s.window,
 		"Підтвердження видалення",
 		fmt.Sprintf("Видалити нарахування #%d на суму %.2f грн?", c.ID, c.Amount),
-		func(confirmed bool) {
-			if confirmed {
-				s.deleteCharge(c)
-			}
+		func() {
+			s.deleteCharge(c)
 		},
-		s.window,
 	)
 }
 
@@ -396,10 +388,10 @@ func (s *ChargesScreen) deleteCharge(c *charge.ChargeOutput) {
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка видалення: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка видалення: %v", err))
 		return
 	}
 
-	dialog.ShowInformation("Успіх", "Нарахування успішно видалено", s.window)
+	common.ShowSuccess(s.window, "Нарахування успішно видалено")
 	s.loadCharges()
 }

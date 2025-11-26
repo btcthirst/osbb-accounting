@@ -70,6 +70,13 @@ func ShowMainScreen(
 			},
 		},
 		{
+			Title: "🏠 Про ОСББ",
+			Icon:  theme.InfoIcon(),
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewOSBBScreen(window, services.OSBBService, authManager).Render()
+			},
+		},
+		{
 			Title:      "👥 Власники",
 			Icon:       theme.AccountIcon(),
 			Permission: "owners.read",

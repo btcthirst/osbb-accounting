@@ -11,4 +11,5 @@ type ServiceContainer struct {
 	ExpenseService         *ExpenseService
 	ExpenseCategoryService *ExpenseCategoryService
 	ContractorService      *ContractorService
+	OSBBService            *OSBBService
 }

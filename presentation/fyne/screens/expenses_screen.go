@@ -7,12 +7,12 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/expense"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // ExpensesScreen - екран списку витрат
@@ -172,7 +172,7 @@ func (s *ExpensesScreen) loadExpenses() {
 
 	output, err := s.expenseService.List(ctx, input)
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
 
@@ -199,39 +199,54 @@ func (s *ExpensesScreen) showActionsMenu(rowIndex int) {
 	}
 	e := s.expenses[rowIndex]
 
-	menu := fyne.NewMenu("Дії",
-		fyne.NewMenuItem("Редагувати", func() {
-			if e.IsApproved {
-				dialog.ShowInformation("Інформація", "Не можна редагувати затверджену витрату", s.window)
-				return
-			}
-			s.showExpenseDialog(e)
-		}),
-		fyne.NewMenuItem("Видалити", func() {
-			if e.IsApproved {
-				dialog.ShowInformation("Інформація", "Не можна видалити затверджену витрату", s.window)
-				return
-			}
-			dialog.ShowConfirm("Видалення", "Ви впевнені, що хочете видалити цю витрату?", func(ok bool) {
-				if ok {
-					s.deleteExpense(e.ID)
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() {
+				if e.IsApproved {
+					common.ShowInformation(s.window, "Інформація", "Не можна редагувати затверджену витрату")
+					return
 				}
-			}, s.window)
-		}),
-		fyne.NewMenuItemSeparator(),
-	)
-
-	if e.IsApproved {
-		menu.Items = append(menu.Items, fyne.NewMenuItem("Скасувати затвердження", func() {
-			s.unapproveExpense(e.ID)
-		}))
-	} else {
-		menu.Items = append(menu.Items, fyne.NewMenuItem("Затвердити", func() {
-			s.approveExpense(e.ID)
-		}))
+				s.showExpenseDialog(e)
+			},
+		},
+		{
+			Label: "🗑️ Видалити",
+			OnTap: func() {
+				if e.IsApproved {
+					common.ShowInformation(s.window, "Інформація", "Не можна видалити затверджену витрату")
+					return
+				}
+				s.confirmDelete(e)
+			},
+			Importance: widget.DangerImportance,
+		},
 	}
 
-	widget.ShowPopUpMenuAtPosition(menu, s.window.Canvas(), fyne.CurrentApp().Driver().AbsolutePositionForObject(s.table))
+	if e.IsApproved {
+		actions = append(actions, common.Action{
+			Label: "↩️ Скасувати затвердження",
+			OnTap: func() { s.unapproveExpense(e.ID) },
+		})
+	} else {
+		actions = append(actions, common.Action{
+			Label: "✅ Затвердити",
+			OnTap: func() { s.approveExpense(e.ID) },
+		})
+	}
+
+	common.ShowActionsMenu(s.window, fmt.Sprintf("Витрата #%d", e.ID), actions)
+}
+
+func (s *ExpensesScreen) confirmDelete(e *expense.ExpenseOutput) {
+	common.ShowDeleteConfirmation(
+		s.window,
+		"Підтвердження видалення",
+		fmt.Sprintf("Ви впевнені, що хочете видалити витрату #%d?", e.ID),
+		func() {
+			s.deleteExpense(e.ID)
+		},
+	)
 }
 
 func (s *ExpensesScreen) deleteExpense(id int64) {
@@ -241,9 +256,10 @@ func (s *ExpensesScreen) deleteExpense(id int64) {
 		ExpenseID:     id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Витрату успішно видалено")
 	s.loadExpenses()
 }
 
@@ -254,9 +270,10 @@ func (s *ExpensesScreen) approveExpense(id int64) {
 		ExpenseID:     id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Витрату затверджено")
 	s.loadExpenses()
 }
 
@@ -267,8 +284,9 @@ func (s *ExpensesScreen) unapproveExpense(id int64) {
 		ExpenseID:     id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Затвердження витрати скасовано")
 	s.loadExpenses()
 }

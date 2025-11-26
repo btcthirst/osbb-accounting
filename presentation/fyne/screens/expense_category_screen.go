@@ -6,12 +6,12 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/expense_category"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // ExpenseCategoryScreen - екран списку категорій витрат
@@ -103,17 +103,9 @@ func (s *ExpenseCategoryScreen) buildUI() {
 			case 1: // Type
 				label.SetText(c.TypeDisplayName)
 			case 2: // Description
-				if c.Description != nil {
-					label.SetText(*c.Description)
-				} else {
-					label.SetText("-")
-				}
+				label.SetText(ptrToString(c.Description, "-"))
 			case 3: // Status
-				if c.IsActive {
-					label.SetText("Активна")
-				} else {
-					label.SetText("Неактивна")
-				}
+				label.SetText(activeStatus(c.IsActive))
 			case 4: // Actions
 				label.SetText("⚙️")
 			}
@@ -169,7 +161,7 @@ func (s *ExpenseCategoryScreen) loadCategories() {
 
 	output, err := s.expenseCategoryService.List(ctx, input)
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
 
@@ -196,20 +188,30 @@ func (s *ExpenseCategoryScreen) showActionsMenu(rowIndex int) {
 	}
 	c := s.categories[rowIndex]
 
-	menu := fyne.NewMenu("Дії",
-		fyne.NewMenuItem("Редагувати", func() {
-			s.showCategoryDialog(c)
-		}),
-		fyne.NewMenuItem("Видалити", func() {
-			dialog.ShowConfirm("Видалення", "Ви впевнені, що хочете видалити цю категорію?", func(ok bool) {
-				if ok {
-					s.deleteCategory(c.ID)
-				}
-			}, s.window)
-		}),
-	)
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() { s.showCategoryDialog(c) },
+		},
+		{
+			Label:      "🗑️ Видалити",
+			OnTap:      func() { s.confirmDelete(c) },
+			Importance: widget.DangerImportance,
+		},
+	}
 
-	widget.ShowPopUpMenuAtPosition(menu, s.window.Canvas(), fyne.CurrentApp().Driver().AbsolutePositionForObject(s.table))
+	common.ShowActionsMenu(s.window, "Дії з категорією: "+c.Name, actions)
+}
+
+func (s *ExpenseCategoryScreen) confirmDelete(c *expense_category.ExpenseCategoryOutput) {
+	common.ShowDeleteConfirmation(
+		s.window,
+		"Підтвердження видалення",
+		"Ви впевнені, що хочете видалити категорію '"+c.Name+"'?",
+		func() {
+			s.deleteCategory(c.ID)
+		},
+	)
 }
 
 func (s *ExpenseCategoryScreen) deleteCategory(id int64) {
@@ -219,8 +221,9 @@ func (s *ExpenseCategoryScreen) deleteCategory(id int64) {
 		CategoryID:    id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Категорію успішно видалено")
 	s.loadCategories()
 }

@@ -52,6 +52,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	expenseRepo := sqlite.NewExpenseRepository(db)
 	expenseCategoryRepo := sqlite.NewExpenseCategoryRepository(db)
 	contractorRepo := sqlite.NewContractorRepository(db)
+	osbbRepo := sqlite.NewOSBBRepository(db)
 
 	// 3. Initialize Services (Application Layer)
 	passwordHasher := security.DefaultBCryptHasher()
@@ -113,6 +114,11 @@ func Initialize(cfg *config.Config) (*App, error) {
 		permissionRepo,
 	)
 
+	osbbService := service.NewOSBBService(
+		osbbRepo,
+		permissionRepo,
+	)
+
 	// 4. Create Service Container
 	services := &service.ServiceContainer{
 		AuthService:            authService,
@@ -124,6 +130,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 		ExpenseService:         expenseService,
 		ExpenseCategoryService: expenseCategoryService,
 		ContractorService:      contractorService,
+		OSBBService:            osbbService,
 	}
 
 	return &App{

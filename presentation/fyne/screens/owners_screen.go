@@ -8,14 +8,13 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/owner"
 	"osbb-accounting/presentation/fyne/auth"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // OwnersScreen представляє екран управління власниками.
@@ -241,7 +240,7 @@ func (s *OwnersScreen) loadOwners() {
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка завантаження власників: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка завантаження власників: %v", err))
 		return
 	}
 
@@ -356,34 +355,28 @@ func (s *OwnersScreen) showOwnerDetails(o *owner.OwnerOutput) {
 		details += fmt.Sprintf("\nПримітки: %s\n", *o.Notes)
 	}
 
-	dialog.ShowInformation("Інформація про власника", details, s.window)
+	common.ShowInformation(s.window, "Інформація про власника", details)
 }
 
 // showActionsMenu показує меню дій з власником.
 func (s *OwnersScreen) showActionsMenu(o *owner.OwnerOutput) {
-	// Створюємо діалог з кнопками
-	editButton := widget.NewButton("✏️ Редагувати", func() {
-		s.showEditDialog(o)
-	})
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() { s.showEditDialog(o) },
+		},
+		{
+			Label:      "🗑️ Видалити",
+			OnTap:      func() { s.confirmDelete(o) },
+			Importance: widget.DangerImportance,
+		},
+		{
+			Label: "ℹ️ Деталі",
+			OnTap: func() { s.showOwnerDetails(o) },
+		},
+	}
 
-	deleteButton := widget.NewButton("🗑️ Видалити", func() {
-		s.confirmDelete(o)
-	})
-	deleteButton.Importance = widget.DangerImportance
-
-	detailsButton := widget.NewButton("ℹ️ Деталі", func() {
-		s.showOwnerDetails(o)
-	})
-
-	content := container.NewVBox(
-		widget.NewLabel(fmt.Sprintf("Дії з власником: %s", o.ShortName)),
-		layout.NewSpacer(),
-		editButton,
-		deleteButton,
-		detailsButton,
-	)
-
-	dialog.ShowCustom("Дії", "Закрити", content, s.window)
+	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з власником: %s", o.ShortName), actions)
 }
 
 // showCreateDialog показує діалог створення власника.
@@ -406,15 +399,13 @@ func (s *OwnersScreen) showEditDialog(o *owner.OwnerOutput) {
 
 // confirmDelete підтверджує видалення власника.
 func (s *OwnersScreen) confirmDelete(o *owner.OwnerOutput) {
-	dialog.ShowConfirm(
+	common.ShowDeleteConfirmation(
+		s.window,
 		"Підтвердження видалення",
 		fmt.Sprintf("Ви впевнені, що хочете видалити власника '%s'?", o.FullName),
-		func(confirmed bool) {
-			if confirmed {
-				s.deleteOwner(o)
-			}
+		func() {
+			s.deleteOwner(o)
 		},
-		s.window,
 	)
 }
 
@@ -429,55 +420,10 @@ func (s *OwnersScreen) deleteOwner(o *owner.OwnerOutput) {
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка видалення: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка видалення: %v", err))
 		return
 	}
 
-	dialog.ShowInformation("Успіх", fmt.Sprintf("Власник '%s' успішно видалено", o.FullName), s.window)
+	common.ShowSuccess(s.window, fmt.Sprintf("Власник '%s' успішно видалено", o.FullName))
 	s.loadOwners()
-}
-
-// Helper functions
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) &&
-		(s == substr || len(substr) == 0 ||
-			indexOf(toLowerCase(s), toLowerCase(substr)) >= 0)
-}
-
-func toLowerCase(s string) string {
-	// Простий lowercase для ASCII
-	result := make([]rune, len(s))
-	for i, r := range s {
-		if r >= 'A' && r <= 'Z' {
-			result[i] = r + 32
-		} else if r >= 'А' && r <= 'Я' {
-			result[i] = r + 32
-		} else {
-			result[i] = r
-		}
-	}
-	return string(result)
-}
-
-func indexOf(s, substr string) int {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return i
-		}
-	}
-	return -1
-}
-
-func ptrToString(ptr *string, defaultVal string) string {
-	if ptr != nil && *ptr != "" {
-		return *ptr
-	}
-	return defaultVal
-}
-
-func activeStatus(isActive bool) string {
-	if isActive {
-		return "✅ Активний"
-	}
-	return "❌ Неактивний"
 }

@@ -8,8 +8,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
@@ -17,6 +15,7 @@ import (
 	"osbb-accounting/application/usecase/ownership"
 	"osbb-accounting/domain/entity"
 	"osbb-accounting/presentation/fyne/auth"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // OwnershipSharesScreen представляє екран управління частками власності.
@@ -48,13 +47,15 @@ type OwnershipSharesScreen struct {
 // NewOwnershipSharesScreen створює новий екран часток власності.
 func NewOwnershipSharesScreen(
 	window fyne.Window,
-	apaertmentService service.ApartmentServiceInterface,
+	apartmentService service.ApartmentServiceInterface,
 	ownerService service.OwnerServiceInterface,
 	ownershipService service.OwnershipServiceInterface,
 	authManager *auth.AuthManager,
 ) *OwnershipSharesScreen {
 	screen := &OwnershipSharesScreen{
 		window:           window,
+		apartmentService: apartmentService,
+		ownerService:     ownerService,
 		ownershipService: ownershipService,
 		authManager:      authManager,
 		pageSize:         50,
@@ -177,11 +178,7 @@ func (s *OwnershipSharesScreen) buildTable() {
 				}
 				label.SetText(dateStr)
 			case 6: // Дії
-				if share.IsCurrentlyActive {
-					label.SetText("✅")
-				} else {
-					label.SetText("❌")
-				}
+				label.SetText("⚙️")
 			}
 		},
 	)
@@ -265,7 +262,7 @@ func (s *OwnershipSharesScreen) loadShares() {
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка завантаження часток: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка завантаження часток: %v", err))
 		return
 	}
 
@@ -376,12 +373,12 @@ func (s *OwnershipSharesScreen) showShareDetails(share *ownership.OwnershipShare
 		ptrToString(share.OwnerEmail, "не вказано"),
 		share.ApartmentNumber,
 		share.ApartmentFloor,
-		intPtrToString(share.ApartmentEntrance, "не вказано"),
+		ptrIntToString(share.ApartmentEntrance, "не вказано"),
 		share.ShareFraction,
 		share.SharePercentage,
 		share.OwnershipTypeName,
 		share.StartDate.Format("02.01.2006"),
-		timeOrDefault(share.EndDate, "теперішній час"),
+		ptrTimeToString(share.EndDate, "02.01.2006", "теперішній час"),
 		currentStatus(share.IsCurrentlyActive),
 	)
 
@@ -399,34 +396,29 @@ func (s *OwnershipSharesScreen) showShareDetails(share *ownership.OwnershipShare
 		details += fmt.Sprintf("\nПримітки: %s\n", *share.Notes)
 	}
 
-	dialog.ShowInformation("Деталі частки власності", details, s.window)
+	common.ShowInformation(s.window, "Деталі частки власності", details)
 }
 
 // showActionsMenu показує меню дій з часткою.
 func (s *OwnershipSharesScreen) showActionsMenu(share *ownership.OwnershipShareDetailsOutput) {
-	editButton := widget.NewButton("✏️ Редагувати", func() {
-		s.showEditDialog(share)
-	})
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() { s.showEditDialog(share) },
+		},
+		{
+			Label:      "🗑️ Видалити",
+			OnTap:      func() { s.confirmDelete(share) },
+			Importance: widget.DangerImportance,
+		},
+		{
+			Label: "ℹ️ Деталі",
+			OnTap: func() { s.showShareDetails(share) },
+		},
+	}
 
-	deleteButton := widget.NewButton("🗑️ Видалити", func() {
-		s.confirmDelete(share)
-	})
-	deleteButton.Importance = widget.DangerImportance
-
-	detailsButton := widget.NewButton("ℹ️ Деталі", func() {
-		s.showShareDetails(share)
-	})
-
-	content := container.NewVBox(
-		widget.NewLabel(fmt.Sprintf("%s - Кв. %s (%s)",
-			share.OwnerName, share.ApartmentNumber, share.ShareFraction)),
-		layout.NewSpacer(),
-		editButton,
-		deleteButton,
-		detailsButton,
-	)
-
-	dialog.ShowCustom("Дії", "Закрити", content, s.window)
+	common.ShowActionsMenu(s.window, fmt.Sprintf("%s - Кв. %s (%s)",
+		share.OwnerName, share.ApartmentNumber, share.ShareFraction), actions)
 }
 
 // showCreateDialog показує діалог створення частки.
@@ -449,7 +441,8 @@ func (s *OwnershipSharesScreen) showEditDialog(share *ownership.OwnershipShareDe
 
 // confirmDelete підтверджує видалення частки.
 func (s *OwnershipSharesScreen) confirmDelete(share *ownership.OwnershipShareDetailsOutput) {
-	dialog.ShowConfirm(
+	common.ShowDeleteConfirmation(
+		s.window,
 		"Підтвердження видалення",
 		fmt.Sprintf(
 			"Ви впевнені, що хочете видалити частку власності?\n\n"+
@@ -461,12 +454,9 @@ func (s *OwnershipSharesScreen) confirmDelete(share *ownership.OwnershipShareDet
 			share.ShareFraction,
 			share.SharePercentage,
 		),
-		func(confirmed bool) {
-			if confirmed {
-				s.deleteShare(share)
-			}
+		func() {
+			s.deleteShare(share)
 		},
-		s.window,
 	)
 }
 
@@ -481,20 +471,12 @@ func (s *OwnershipSharesScreen) deleteShare(share *ownership.OwnershipShareDetai
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка видалення: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка видалення: %v", err))
 		return
 	}
 
-	dialog.ShowInformation("Успіх", "Частку власності успішно видалено", s.window)
+	common.ShowSuccess(s.window, "Частку власності успішно видалено")
 	s.loadShares()
-}
-
-// Helper функції
-func timeOrDefault(t *time.Time, defaultVal string) string {
-	if t != nil {
-		return t.Format("02.01.2006")
-	}
-	return defaultVal
 }
 
 func currentStatus(isActive bool) string {
@@ -502,11 +484,4 @@ func currentStatus(isActive bool) string {
 		return "✅ Активна зараз"
 	}
 	return "❌ Завершена"
-}
-
-func intPtrToString(ptr *int, defaultVal string) string {
-	if ptr != nil {
-		return fmt.Sprintf("%d", *ptr)
-	}
-	return defaultVal
 }

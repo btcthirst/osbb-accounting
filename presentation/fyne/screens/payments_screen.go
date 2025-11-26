@@ -14,6 +14,7 @@ import (
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/payment"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // PaymentsScreen - екран списку платежів
@@ -254,39 +255,54 @@ func (s *PaymentsScreen) showActionsMenu(rowIndex int) {
 	}
 	p := s.payments[rowIndex]
 
-	menu := fyne.NewMenu("Дії",
-		fyne.NewMenuItem("Редагувати", func() {
-			if p.IsApproved {
-				dialog.ShowInformation("Інформація", "Не можна редагувати підтверджений платіж", s.window)
-				return
-			}
-			s.showPaymentDialog(p)
-		}),
-		fyne.NewMenuItem("Видалити", func() {
-			if p.IsApproved {
-				dialog.ShowInformation("Інформація", "Не можна видалити підтверджений платіж", s.window)
-				return
-			}
-			dialog.ShowConfirm("Видалення", "Ви впевнені, що хочете видалити цей платіж?", func(ok bool) {
-				if ok {
-					s.deletePayment(p.ID)
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() {
+				if p.IsApproved {
+					common.ShowInformation(s.window, "Інформація", "Не можна редагувати підтверджений платіж")
+					return
 				}
-			}, s.window)
-		}),
-		fyne.NewMenuItemSeparator(),
-	)
-
-	if p.IsApproved {
-		menu.Items = append(menu.Items, fyne.NewMenuItem("Скасувати підтвердження", func() {
-			s.unapprovePayment(p.ID)
-		}))
-	} else {
-		menu.Items = append(menu.Items, fyne.NewMenuItem("Підтвердити", func() {
-			s.approvePayment(p.ID)
-		}))
+				s.showPaymentDialog(p)
+			},
+		},
+		{
+			Label: "🗑️ Видалити",
+			OnTap: func() {
+				if p.IsApproved {
+					common.ShowInformation(s.window, "Інформація", "Не можна видалити підтверджений платіж")
+					return
+				}
+				s.confirmDelete(p)
+			},
+			Importance: widget.DangerImportance,
+		},
 	}
 
-	widget.ShowPopUpMenuAtPosition(menu, s.window.Canvas(), fyne.CurrentApp().Driver().AbsolutePositionForObject(s.table))
+	if p.IsApproved {
+		actions = append(actions, common.Action{
+			Label: "↩️ Скасувати підтвердження",
+			OnTap: func() { s.unapprovePayment(p.ID) },
+		})
+	} else {
+		actions = append(actions, common.Action{
+			Label: "✅ Підтвердити",
+			OnTap: func() { s.approvePayment(p.ID) },
+		})
+	}
+
+	common.ShowActionsMenu(s.window, fmt.Sprintf("Платіж #%d", p.ID), actions)
+}
+
+func (s *PaymentsScreen) confirmDelete(p *payment.PaymentOutput) {
+	common.ShowDeleteConfirmation(
+		s.window,
+		"Підтвердження видалення",
+		fmt.Sprintf("Ви впевнені, що хочете видалити платіж #%d?", p.ID),
+		func() {
+			s.deletePayment(p.ID)
+		},
+	)
 }
 
 func (s *PaymentsScreen) deletePayment(id int64) {
@@ -296,9 +312,10 @@ func (s *PaymentsScreen) deletePayment(id int64) {
 		PaymentID:     id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Платіж успішно видалено")
 	s.loadPayments()
 }
 
@@ -309,9 +326,10 @@ func (s *PaymentsScreen) approvePayment(id int64) {
 		PaymentID:     id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Платіж підтверджено")
 	s.loadPayments()
 }
 
@@ -322,8 +340,9 @@ func (s *PaymentsScreen) unapprovePayment(id int64) {
 		PaymentID:     id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Підтвердження платежу скасовано")
 	s.loadPayments()
 }

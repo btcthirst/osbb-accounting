@@ -6,12 +6,12 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/contractor"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // ContractorsScreen - екран списку контрагентів
@@ -103,19 +103,11 @@ func (s *ContractorsScreen) buildUI() {
 			case 1: // Type
 				label.SetText(c.TypeDisplayName)
 			case 2: // EDRPOU
-				if c.EDRPOU != nil {
-					label.SetText(*c.EDRPOU)
-				} else {
-					label.SetText("-")
-				}
+				label.SetText(ptrToString(c.EDRPOU, "-"))
 			case 3: // Contact
 				label.SetText(c.ContactInfo)
 			case 4: // Status
-				if c.IsActive {
-					label.SetText("Активний")
-				} else {
-					label.SetText("Неактивний")
-				}
+				label.SetText(activeStatus(c.IsActive))
 			case 5: // Actions
 				label.SetText("⚙️")
 			}
@@ -172,7 +164,7 @@ func (s *ContractorsScreen) loadContractors() {
 
 	output, err := s.contractorService.List(ctx, input)
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
 
@@ -199,20 +191,30 @@ func (s *ContractorsScreen) showActionsMenu(rowIndex int) {
 	}
 	c := s.contractors[rowIndex]
 
-	menu := fyne.NewMenu("Дії",
-		fyne.NewMenuItem("Редагувати", func() {
-			s.showContractorDialog(c)
-		}),
-		fyne.NewMenuItem("Видалити", func() {
-			dialog.ShowConfirm("Видалення", "Ви впевнені, що хочете видалити цього контрагента?", func(ok bool) {
-				if ok {
-					s.deleteContractor(c.ID)
-				}
-			}, s.window)
-		}),
-	)
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() { s.showContractorDialog(c) },
+		},
+		{
+			Label:      "🗑️ Видалити",
+			OnTap:      func() { s.confirmDelete(c) },
+			Importance: widget.DangerImportance,
+		},
+	}
 
-	widget.ShowPopUpMenuAtPosition(menu, s.window.Canvas(), fyne.CurrentApp().Driver().AbsolutePositionForObject(s.table))
+	common.ShowActionsMenu(s.window, "Дії з контрагентом: "+c.Name, actions)
+}
+
+func (s *ContractorsScreen) confirmDelete(c *contractor.ContractorOutput) {
+	common.ShowDeleteConfirmation(
+		s.window,
+		"Підтвердження видалення",
+		"Ви впевнені, що хочете видалити контрагента '"+c.Name+"'?",
+		func() {
+			s.deleteContractor(c.ID)
+		},
+	)
 }
 
 func (s *ContractorsScreen) deleteContractor(id int64) {
@@ -222,8 +224,9 @@ func (s *ContractorsScreen) deleteContractor(id int64) {
 		ContractorID:  id,
 	})
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, err)
 		return
 	}
+	common.ShowSuccess(s.window, "Контрагента успішно видалено")
 	s.loadContractors()
 }

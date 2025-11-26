@@ -7,14 +7,13 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/apartment"
-	"osbb-accounting/presentation/fyne/auth" // Імпорт з нового місця
+	"osbb-accounting/presentation/fyne/auth"
+	"osbb-accounting/presentation/fyne/common"
 )
 
 type ApartmentsScreen struct {
@@ -47,7 +46,7 @@ func NewApartmentsScreen(
 	screen := &ApartmentsScreen{
 		window:           window,
 		apartmentService: apartmentService,
-		authManager:      authManager, // <--- ВИПРАВЛЕННЯ: Ініціалізація поля
+		authManager:      authManager,
 		pageSize:         50,
 		currentPage:      0,
 	}
@@ -141,7 +140,7 @@ func (s *ApartmentsScreen) buildTable() {
 			case 0: // №
 				label.SetText(fmt.Sprintf("%d", id.Row))
 			case 1: // ПІБ (DisplayName)
-				label.SetText(apartment.DisplayName)
+				label.SetText(ptrToString(apartment.CadastralNumber, "-"))
 				if !apartment.IsActive {
 					label.TextStyle = fyne.TextStyle{Italic: true}
 				} else {
@@ -248,7 +247,7 @@ func (s *ApartmentsScreen) loadApartments() {
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка завантаження квартир: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка завантаження квартир: %v", err))
 		return
 	}
 
@@ -363,33 +362,28 @@ func (s *ApartmentsScreen) showApartmentDetails(a *apartment.ApartmentOutput) {
 		details += fmt.Sprintf("\nПримітки: %s\n", *a.Notes)
 	}
 
-	dialog.ShowInformation("Інформація про квартиру", details, s.window)
+	common.ShowInformation(s.window, "Інформація про квартиру", details)
 }
 
 // showActionsMenu показує меню дій з власником.
 func (s *ApartmentsScreen) showActionsMenu(a *apartment.ApartmentOutput) {
-	editButton := widget.NewButton("✏️ Редагувати", func() {
-		s.showEditDialog(a)
-	})
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: func() { s.showEditDialog(a) },
+		},
+		{
+			Label:      "🗑️ Видалити",
+			OnTap:      func() { s.confirmDelete(a) },
+			Importance: widget.DangerImportance,
+		},
+		{
+			Label: "ℹ️ Деталі",
+			OnTap: func() { s.showApartmentDetails(a) },
+		},
+	}
 
-	deleteButton := widget.NewButton("🗑️ Видалити", func() {
-		s.confirmDelete(a)
-	})
-	deleteButton.Importance = widget.DangerImportance
-
-	detailsButton := widget.NewButton("ℹ️ Деталі", func() {
-		s.showApartmentDetails(a)
-	})
-
-	content := container.NewVBox(
-		widget.NewLabel(fmt.Sprintf("Дії з квартирою № %s", a.ApartmentNumber)),
-		layout.NewSpacer(),
-		editButton,
-		deleteButton,
-		detailsButton,
-	)
-
-	dialog.ShowCustom("Дії", "Закрити", content, s.window)
+	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з квартирою № %s", a.ApartmentNumber), actions)
 }
 
 // showCreateDialog показує діалог створення.
@@ -412,15 +406,13 @@ func (s *ApartmentsScreen) showEditDialog(a *apartment.ApartmentOutput) {
 
 // confirmDelete підтверджує видалення.
 func (s *ApartmentsScreen) confirmDelete(a *apartment.ApartmentOutput) {
-	dialog.ShowConfirm(
+	common.ShowDeleteConfirmation(
+		s.window,
 		"Підтвердження видалення",
 		fmt.Sprintf("Ви впевнені, що хочете видалити квартиру №%s?", a.ApartmentNumber),
-		func(confirmed bool) {
-			if confirmed {
-				s.deleteApartment(a)
-			}
+		func() {
+			s.deleteApartment(a)
 		},
-		s.window,
 	)
 }
 
@@ -435,24 +427,10 @@ func (s *ApartmentsScreen) deleteApartment(a *apartment.ApartmentOutput) {
 	})
 
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("Помилка видалення: %v", err), s.window)
+		common.ShowError(s.window, fmt.Errorf("Помилка видалення: %v", err))
 		return
 	}
 
-	dialog.ShowInformation("Успіх", fmt.Sprintf("Квартиру №%s успішно видалено", a.ApartmentNumber), s.window)
+	common.ShowSuccess(s.window, fmt.Sprintf("Квартиру №%s успішно видалено", a.ApartmentNumber))
 	s.loadApartments()
-}
-
-func ptrIntToString(ptr *int, defaultVal string) string {
-	if ptr != nil {
-		return fmt.Sprintf("%v", *ptr)
-	}
-	return defaultVal
-}
-
-func ptrFloatToString(ptr *float64, defaultVal string) string {
-	if ptr != nil {
-		return fmt.Sprintf("%.1f", *ptr)
-	}
-	return defaultVal
 }
