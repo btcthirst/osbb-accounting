@@ -143,13 +143,26 @@ func main() {
 		permissionRepo,
 	)
 
-	// 5. Створення AuthManager (Presentation Layer)
+	// 5. Створення ServiceContainer
+	services := &service.ServiceContainer{
+		AuthService:            authService,
+		OwnerService:           ownerService,
+		ApartmentService:       apartmentService,
+		OwnershipService:       ownershipService,
+		ChargeService:          chargeService,
+		PaymentService:         paymentService,
+		ExpenseService:         expenseService,
+		ExpenseCategoryService: expenseCategoryService,
+		ContractorService:      contractorService,
+	}
+
+	// 6. Створення AuthManager (Presentation Layer)
 	authManager := auth.NewAuthManager(myApp, authService)
 
-	// 6. Налаштування callbacks навігації
+	// 7. Налаштування callbacks навігації
 	authManager.OnLoginSuccess(func() {
-		// Передаємо всі необхідні сервіси у головний екран
-		screens.ShowMainScreen(mainWindow, authManager, ownerService, apartmentService, ownershipService, chargeService, paymentService, expenseService, expenseCategoryService, contractorService)
+		// Передаємо контейнер сервісів у головний екран
+		screens.ShowMainScreen(mainWindow, authManager, services)
 	})
 
 	authManager.OnLogout(func() {

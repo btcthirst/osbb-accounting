@@ -13,17 +13,11 @@ import (
 )
 
 // ShowMainScreen будує головний інтерфейс з боковим меню та контентом
+// ShowMainScreen будує головний інтерфейс з боковим меню та контентом
 func ShowMainScreen(
 	window fyne.Window,
 	authManager *auth.AuthManager,
-	ownerService *service.OwnerService,
-	apartmentService *service.ApartmentService,
-	ownershipService *service.OwnershipService,
-	chargeService *service.ChargeService,
-	paymentService *service.PaymentService,
-	expenseService *service.ExpenseService,
-	expenseCategoryService *service.ExpenseCategoryService,
-	contractorService *service.ContractorService,
+	services *service.ServiceContainer,
 ) {
 	user := authManager.GetCurrentUser()
 
@@ -115,8 +109,8 @@ func ShowMainScreen(
 		case 0: // Головна
 			screen := NewDashboardScreen(
 				window,
-				chargeService,
-				paymentService,
+				services.ChargeService,
+				services.PaymentService,
 				authManager,
 			)
 			newContent = screen.Render()
@@ -124,7 +118,7 @@ func ShowMainScreen(
 		case 1: // Власники
 			if authManager.HasPermission("owners.read") {
 				// Ініціалізуємо екран власників
-				screen := NewOwnersScreen(window, ownerService, authManager)
+				screen := NewOwnersScreen(window, services.OwnerService, authManager)
 				newContent = screen.Render()
 			} else {
 				newContent = createAccessDeniedPlaceholder()
@@ -132,7 +126,7 @@ func ShowMainScreen(
 
 		case 2: // Квартири
 			if authManager.HasPermission("apartments.read") {
-				screen := NewApartmentsScreen(window, apartmentService, authManager)
+				screen := NewApartmentsScreen(window, services.ApartmentService, authManager)
 				newContent = screen.Render()
 			} else {
 				newContent = createAccessDeniedPlaceholder()
@@ -143,9 +137,9 @@ func ShowMainScreen(
 				// Ініціалізуємо екран часток
 				screen := NewOwnershipSharesScreen(
 					window,
-					apartmentService,
-					ownerService,
-					ownershipService,
+					services.ApartmentService,
+					services.OwnerService,
+					services.OwnershipService,
 					authManager,
 				)
 				newContent = screen.Render()
@@ -157,8 +151,8 @@ func ShowMainScreen(
 			if authManager.HasPermission("charges.read") {
 				screen := NewChargesScreen(
 					window,
-					chargeService,
-					ownershipService,
+					services.ChargeService,
+					services.OwnershipService,
 					authManager,
 				)
 				newContent = screen.Render()
@@ -170,8 +164,8 @@ func ShowMainScreen(
 			if authManager.HasPermission("payments.read") {
 				screen := NewPaymentsScreen(
 					window,
-					paymentService,
-					ownershipService,
+					services.PaymentService,
+					services.OwnershipService,
 					authManager,
 				)
 				newContent = screen.Render()
@@ -183,7 +177,7 @@ func ShowMainScreen(
 			if authManager.HasPermission("expenses.read") {
 				screen := NewExpensesScreen(
 					window,
-					expenseService,
+					services.ExpenseService,
 					authManager,
 				)
 				newContent = screen.Render()
@@ -195,7 +189,7 @@ func ShowMainScreen(
 			if authManager.HasPermission("expenses.read") {
 				screen := NewExpenseCategoryScreen(
 					window,
-					expenseCategoryService,
+					services.ExpenseCategoryService,
 					authManager,
 				)
 				newContent = screen.Render()
@@ -207,7 +201,7 @@ func ShowMainScreen(
 			if authManager.HasPermission("contractors.read") {
 				screen := NewContractorsScreen(
 					window,
-					contractorService,
+					services.ContractorService,
 					authManager,
 				)
 				newContent = screen.Render()
