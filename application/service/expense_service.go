@@ -27,7 +27,7 @@ type ExpenseServiceInterface interface {
 type ExpenseService struct {
 	expenseRepo    repository.ExpenseRepository
 	permissionRepo repository.PermissionRepository
-	// categoryRepo repository.ExpenseCategoryRepository // Needed for category name
+	categoryRepo   repository.ExpenseCategoryRepository
 	// contractorRepo repository.ContractorRepository // Needed for contractor name
 }
 
@@ -35,10 +35,12 @@ type ExpenseService struct {
 func NewExpenseService(
 	expenseRepo repository.ExpenseRepository,
 	permissionRepo repository.PermissionRepository,
+	categoryRepo repository.ExpenseCategoryRepository,
 ) *ExpenseService {
 	return &ExpenseService{
 		expenseRepo:    expenseRepo,
 		permissionRepo: permissionRepo,
+		categoryRepo:   categoryRepo,
 	}
 }
 
@@ -282,10 +284,16 @@ func (s *ExpenseService) checkPermission(ctx context.Context, userID int64, perm
 
 // Helper: Convert to Output
 func (s *ExpenseService) toOutput(e *entity.Expense) *expense.ExpenseOutput {
+	// Get category name
+	categoryName := fmt.Sprintf("Category %d", e.CategoryID) // Fallback
+	if category, err := s.categoryRepo.GetByID(context.Background(), e.CategoryID); err == nil {
+		categoryName = category.Name
+	}
+
 	return &expense.ExpenseOutput{
 		ID:                e.ID,
 		CategoryID:        e.CategoryID,
-		CategoryName:      fmt.Sprintf("Category %d", e.CategoryID), // Placeholder, need CategoryRepo
+		CategoryName:      categoryName,
 		ContractorID:      e.ContractorID,
 		ExpenseDate:       e.ExpenseDate,
 		Amount:            e.Amount,

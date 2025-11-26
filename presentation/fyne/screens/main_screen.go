@@ -22,6 +22,7 @@ func ShowMainScreen(
 	chargeService *service.ChargeService,
 	paymentService *service.PaymentService,
 	expenseService *service.ExpenseService,
+	expenseCategoryService *service.ExpenseCategoryService,
 	contractorService *service.ContractorService,
 ) {
 	user := authManager.GetCurrentUser()
@@ -62,6 +63,9 @@ func ShowMainScreen(
 		"📝 Частки власності", // Ownership Shares
 		"💰 Нарахування",
 		"💳 Платежі",
+		"💸 Витрати",
+		"📂 Категорії витрат",
+		"👷 Підрядники",
 		"⚙️ Налаштування",
 	}
 
@@ -92,6 +96,12 @@ func ShowMainScreen(
 			case 5:
 				icon.SetResource(theme.DocumentPrintIcon())
 			case 6:
+				icon.SetResource(theme.ContentRemoveIcon())
+			case 7:
+				icon.SetResource(theme.ListIcon())
+			case 8:
+				icon.SetResource(theme.FolderIcon())
+			case 9:
 				icon.SetResource(theme.SettingsIcon())
 			}
 		},
@@ -156,6 +166,19 @@ func ShowMainScreen(
 				newContent = createAccessDeniedPlaceholder()
 			}
 
+		case 5: // Платежі
+			if authManager.HasPermission("payments.read") {
+				screen := NewPaymentsScreen(
+					window,
+					paymentService,
+					ownershipService,
+					authManager,
+				)
+				newContent = screen.Render()
+			} else {
+				newContent = createAccessDeniedPlaceholder()
+			}
+
 		case 6: // Витрати
 			if authManager.HasPermission("expenses.read") {
 				screen := NewExpensesScreen(
@@ -168,7 +191,19 @@ func ShowMainScreen(
 				newContent = createAccessDeniedPlaceholder()
 			}
 
-		case 7: // Підрядники
+		case 7: // Категорії витрат
+			if authManager.HasPermission("expenses.read") {
+				screen := NewExpenseCategoryScreen(
+					window,
+					expenseCategoryService,
+					authManager,
+				)
+				newContent = screen.Render()
+			} else {
+				newContent = createAccessDeniedPlaceholder()
+			}
+
+		case 8: // Підрядники
 			if authManager.HasPermission("contractors.read") {
 				screen := NewContractorsScreen(
 					window,
@@ -180,7 +215,7 @@ func ShowMainScreen(
 				newContent = createAccessDeniedPlaceholder()
 			}
 
-		case 8: // Налаштування
+		case 9: // Налаштування
 			screen := NewSettingsScreen(window, authManager)
 			newContent = screen.Render()
 

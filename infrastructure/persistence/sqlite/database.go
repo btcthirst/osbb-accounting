@@ -21,24 +21,6 @@ type Config struct {
 	ConnMaxIdleTime time.Duration // Максимальний час простою з'єднання
 }
 
-// DefaultConfig повертає конфігурацію за замовчуванням.
-func DefaultConfig() *Config {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		homeDir = "."
-	}
-
-	dataDir := filepath.Join(homeDir, "osbb-accounting")
-
-	return &Config{
-		Path:            filepath.Join(dataDir, "osbb.db"),
-		MaxOpenConns:    25,
-		MaxIdleConns:    5,
-		ConnMaxLifetime: time.Hour,
-		ConnMaxIdleTime: 10 * time.Minute,
-	}
-}
-
 // Connect створює підключення до SQLite БД та виконує міграції.
 func Connect(config *Config) (*sql.DB, error) {
 	// Крок 1: Створюємо директорію для БД

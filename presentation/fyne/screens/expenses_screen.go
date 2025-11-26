@@ -54,37 +54,49 @@ func NewExpensesScreen(
 }
 
 func (s *ExpensesScreen) buildUI() {
-	// Toolbar
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
-			s.showExpenseDialog(nil)
-		}),
-		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-			s.loadExpenses()
-		}),
-	)
+	// Buttons
+	createButton := widget.NewButtonWithIcon("Додати витрату", theme.ContentAddIcon(), func() {
+		s.showExpenseDialog(nil)
+	})
+	createButton.Importance = widget.HighImportance
+
+	refreshButton := widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+		s.loadExpenses()
+	})
 
 	// Filters
 	s.searchEntry = widget.NewEntry()
 	s.searchEntry.SetPlaceHolder("Пошук...")
 	s.searchEntry.OnSubmitted = func(_ string) { s.loadExpenses() }
 
-	filterContainer := container.NewBorder(nil, nil, nil,
-		widget.NewButtonWithIcon("", theme.SearchIcon(), func() { s.loadExpenses() }),
-		s.searchEntry,
-	)
-
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.expenses), 7 // Cols: ID, Date, Category, Amount, Status, Approved, Actions
+			return len(s.expenses) + 1, 7 // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Cell content")
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
-			e := s.expenses[id.Row]
 			label := cell.(*widget.Label)
+
+			if id.Row == 0 {
+				// Headers
+				headers := []string{"ID", "Дата", "Категорія", "Сума", "Статус", "Підтверджено", "Дії"}
+				label.SetText(headers[id.Col])
+				label.TextStyle = fyne.TextStyle{Bold: true}
+				return
+			}
+
+			// Data
+			if id.Row-1 >= len(s.expenses) {
+				label.SetText("")
+				return
+			}
+			e := s.expenses[id.Row-1]
+
+			// Reset style
+			label.TextStyle = fyne.TextStyle{}
 
 			switch id.Col {
 			case 0: // ID
@@ -120,14 +132,25 @@ func (s *ExpensesScreen) buildUI() {
 
 	s.table.OnSelected = func(id widget.TableCellID) {
 		s.table.Unselect(id)
+		if id.Row == 0 {
+			return
+		}
 		if id.Col == 6 {
-			s.showActionsMenu(id.Row)
+			s.showActionsMenu(id.Row - 1)
 		}
 	}
 
+	// Toolbar container
+	toolbar := container.NewBorder(
+		nil, nil,
+		container.NewHBox(createButton, refreshButton),
+		nil,
+		s.searchEntry,
+	)
+
 	// Layout
 	s.content = container.NewBorder(
-		container.NewVBox(toolbar, filterContainer),
+		toolbar,
 		nil, nil, nil,
 		s.table,
 	)

@@ -86,9 +86,3 @@ func TestConnect_Errors(t *testing.T) {
 	assert.Nil(t, db)
 	assert.Contains(t, err.Error(), "failed to create database directory")
 }
-
-func TestDefaultConfig(t *testing.T) {
-	config := sqlite.DefaultConfig()
-	assert.NotEmpty(t, config.Path)
-	assert.Greater(t, config.MaxOpenConns, 0)
-}

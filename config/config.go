@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -38,7 +39,15 @@ type SecurityConfig struct {
 }
 
 // Default returns the default configuration.
+// Database will be stored in ~/osbb-accounting/osbb.db by default.
 func Default() *Config {
+	// Determine home directory for database storage
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = "."
+	}
+	dataDir := filepath.Join(homeDir, "osbb-accounting")
+
 	return &Config{
 		App: AppConfig{
 			Name:        "OSBB Accounting",
@@ -47,7 +56,7 @@ func Default() *Config {
 			WindowTitle: "ОСББ Управління",
 		},
 		Database: DatabaseConfig{
-			Path:            "./osbb.db",
+			Path:            filepath.Join(dataDir, "osbb.db"),
 			MaxOpenConns:    25,
 			MaxIdleConns:    5,
 			ConnMaxLifetime: time.Hour,

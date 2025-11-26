@@ -2,12 +2,14 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 
 	"osbb-accounting/application/service"
+	authUseCase "osbb-accounting/application/usecase/auth"
 	"osbb-accounting/config"
 	"osbb-accounting/infrastructure/persistence/sqlite"
 	"osbb-accounting/infrastructure/security"
@@ -61,6 +63,7 @@ func main() {
 	chargeRepo := sqlite.NewChargeRepository(db)
 	paymentRepo := sqlite.NewPaymentRepository(db)
 	expenseRepo := sqlite.NewExpenseRepository(db)
+	expenseCategoryRepo := sqlite.NewExpenseCategoryRepository(db)
 	contractorRepo := sqlite.NewContractorRepository(db)
 
 	// 4. Створення services (Application Layer)
@@ -73,6 +76,28 @@ func main() {
 		permissionRepo,
 		passwordHasher,
 	)
+
+	// 4.1. Перевірка та створення дефолтного адміна
+	ctx := context.Background()
+	_, err = userRepo.GetByUsername(ctx, "admin")
+	if err != nil {
+		// Користувача не існує (або помилка БД) - спробуємо створити
+		log.Println("Default admin not found, creating...")
+
+		_, err = authService.Register(ctx, authUseCase.RegisterUserInput{
+			Username:  "admin",
+			Email:     "admin@osbb.local",
+			Password:  "Admin123!",
+			FirstName: "System",
+			LastName:  "Administrator",
+			RoleName:  "admin",
+		})
+		if err != nil {
+			log.Printf("Failed to create default admin: %v", err)
+		} else {
+			log.Println("Default admin created successfully: admin / Admin123!")
+		}
+	}
 
 	ownerService := service.NewOwnerService(
 		ownerRepo,
@@ -104,6 +129,13 @@ func main() {
 	expenseService := service.NewExpenseService(
 		expenseRepo,
 		permissionRepo,
+		expenseCategoryRepo,
+	)
+
+	// Note: expenseCategoryService is initialized for managing expense categories in the UI
+	expenseCategoryService := service.NewExpenseCategoryService(
+		expenseCategoryRepo,
+		permissionRepo,
 	)
 
 	contractorService := service.NewContractorService(
@@ -117,7 +149,7 @@ func main() {
 	// 6. Налаштування callbacks навігації
 	authManager.OnLoginSuccess(func() {
 		// Передаємо всі необхідні сервіси у головний екран
-		screens.ShowMainScreen(mainWindow, authManager, ownerService, apartmentService, ownershipService, chargeService, paymentService, expenseService, contractorService)
+		screens.ShowMainScreen(mainWindow, authManager, ownerService, apartmentService, ownershipService, chargeService, paymentService, expenseService, expenseCategoryService, contractorService)
 	})
 
 	authManager.OnLogout(func() {

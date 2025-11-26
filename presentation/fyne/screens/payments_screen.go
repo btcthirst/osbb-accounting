@@ -59,48 +59,44 @@ func NewPaymentsScreen(
 }
 
 func (s *PaymentsScreen) buildUI() {
-	// Toolbar
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(theme.ContentAddIcon(), func() {
-			s.showPaymentDialog(nil)
-		}),
-		widget.NewToolbarAction(theme.ViewRefreshIcon(), func() {
-			s.loadPayments()
-		}),
-	)
+	// Buttons
+	createButton := widget.NewButtonWithIcon("Додати платіж", theme.ContentAddIcon(), func() {
+		s.showPaymentDialog(nil)
+	})
+	createButton.Importance = widget.HighImportance
 
-	// Filters
-	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("Пошук...")
-	s.searchEntry.OnSubmitted = func(_ string) { s.loadPayments() }
-
-	s.filterSelect = widget.NewSelect([]string{
-		"Всі",
-		"Поточний місяць",
-		"Минулий місяць",
-		"Непідтверджені",
-		"Підтверджені",
-	}, func(selected string) {
+	refreshButton := widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
 		s.loadPayments()
 	})
-	s.filterSelect.SetSelected("Всі")
-
-	filterContainer := container.NewBorder(nil, nil, nil,
-		container.NewHBox(widget.NewLabel("Фільтр:"), s.filterSelect, widget.NewButtonWithIcon("", theme.SearchIcon(), func() { s.loadPayments() })),
-		s.searchEntry,
-	)
 
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.payments), 8 // Cols: ID, Date, Period, Method, Amount, Approved, Receipt, Actions
+			return len(s.payments) + 1, 8 // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Cell content")
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
-			p := s.payments[id.Row]
 			label := cell.(*widget.Label)
+
+			if id.Row == 0 {
+				// Headers
+				headers := []string{"ID", "Дата", "Період", "Метод", "Сума", "Підтверджено", "Квитанція", "Дії"}
+				label.SetText(headers[id.Col])
+				label.TextStyle = fyne.TextStyle{Bold: true}
+				return
+			}
+
+			// Data
+			if id.Row-1 >= len(s.payments) {
+				label.SetText("")
+				return
+			}
+			p := s.payments[id.Row-1]
+
+			// Reset style
+			label.TextStyle = fyne.TextStyle{}
 
 			switch id.Col {
 			case 0: // ID
@@ -147,19 +143,49 @@ func (s *PaymentsScreen) buildUI() {
 
 	s.table.OnSelected = func(id widget.TableCellID) {
 		s.table.Unselect(id) // Don't keep selection
+		if id.Row == 0 {
+			return
+		}
 		if id.Col == 7 {
-			s.showActionsMenu(id.Row)
+			s.showActionsMenu(id.Row - 1)
 		}
 	}
 
+	// Filters
+	s.searchEntry = widget.NewEntry()
+	s.searchEntry.SetPlaceHolder("Пошук...")
+	s.searchEntry.OnSubmitted = func(_ string) { s.loadPayments() }
+
+	s.filterSelect = widget.NewSelect([]string{
+		"Всі",
+		"Поточний місяць",
+		"Минулий місяць",
+		"Непідтверджені",
+		"Підтверджені",
+	}, func(selected string) {
+		s.loadPayments()
+	})
+
+	// Toolbar container
+	toolbar := container.NewBorder(
+		nil, nil,
+		container.NewHBox(createButton, refreshButton),
+		nil,
+		container.NewVBox(
+			s.searchEntry,
+			container.NewHBox(widget.NewLabel("Фільтр:"), s.filterSelect),
+		),
+	)
+
 	// Layout
 	s.content = container.NewBorder(
-		container.NewVBox(toolbar, filterContainer),
+		toolbar,
 		nil, nil, nil,
 		s.table,
 	)
 
-	s.loadPayments()
+	// Trigger initial load
+	s.filterSelect.SetSelected("Всі")
 }
 
 func (s *PaymentsScreen) Render() fyne.CanvasObject {

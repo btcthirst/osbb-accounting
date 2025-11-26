@@ -9,14 +9,21 @@ import (
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/auth"
+	"osbb-accounting/config"
 	"osbb-accounting/infrastructure/persistence/sqlite"
 	"osbb-accounting/infrastructure/security"
 )
 
 func main() {
 	// 1. Connect to database
-	dbConfig := sqlite.DefaultConfig()
-	dbConfig.Path = "./osbb.db" // Assume running from root
+	cfg := config.Default()
+	dbConfig := &sqlite.Config{
+		Path:            cfg.Database.Path,
+		MaxOpenConns:    cfg.Database.MaxOpenConns,
+		MaxIdleConns:    cfg.Database.MaxIdleConns,
+		ConnMaxLifetime: cfg.Database.ConnMaxLifetime,
+		ConnMaxIdleTime: cfg.Database.ConnMaxIdleTime,
+	}
 
 	fmt.Printf("Connecting to database at %s...\n", dbConfig.Path)
 	db, err := sqlite.Connect(dbConfig)

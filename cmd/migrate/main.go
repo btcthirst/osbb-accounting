@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"osbb-accounting/infrastructure/persistence/sqlite"
+	"osbb-accounting/config"
 	"osbb-accounting/migrations"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -26,8 +26,8 @@ func main() {
 	// Визначаємо шлях до БД
 	path := *dbPath
 	if path == "" {
-		config := sqlite.DefaultConfig()
-		path = config.Path
+		cfg := config.Default()
+		path = cfg.Database.Path
 	}
 
 	// Відкриваємо БД напряму (без автоматичних міграцій)

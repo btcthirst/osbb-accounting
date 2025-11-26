@@ -2,7 +2,6 @@ package sqlite_test
 
 import (
 	"context"
-	"database/sql"
 	"testing"
 	"time"
 
@@ -15,41 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestDB(t *testing.T) *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
-	require.NoError(t, err)
-
-	// Create owners table
-	query := `
-	CREATE TABLE owners (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		first_name TEXT NOT NULL,
-		last_name TEXT NOT NULL,
-		middle_name TEXT,
-		phone TEXT,
-		email TEXT,
-		tax_number TEXT UNIQUE,
-		passport_series TEXT,
-		passport_number TEXT,
-		registered_address TEXT,
-		actual_address TEXT,
-		notes TEXT,
-		is_active INTEGER NOT NULL DEFAULT 1,
-		deleted_at INTEGER,
-		created_at INTEGER NOT NULL,
-		updated_at INTEGER NOT NULL
-	);
-	`
-	_, err = db.Exec(query)
-	require.NoError(t, err)
-
-	return db
-}
-
 func TestOwnerRepository_Create(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-
+	db := sqlite.SetupTestDB(t) // ✅ Uses migrations + auto-cleanup
 	repo := sqlite.NewOwnerRepository(db)
 	ctx := context.Background()
 
@@ -78,9 +44,7 @@ func TestOwnerRepository_Create(t *testing.T) {
 }
 
 func TestOwnerRepository_GetByID(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-
+	db := sqlite.SetupTestDB(t)
 	repo := sqlite.NewOwnerRepository(db)
 	ctx := context.Background()
 
@@ -102,9 +66,7 @@ func TestOwnerRepository_GetByID(t *testing.T) {
 }
 
 func TestOwnerRepository_Update(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-
+	db := sqlite.SetupTestDB(t)
 	repo := sqlite.NewOwnerRepository(db)
 	ctx := context.Background()
 
@@ -125,9 +87,7 @@ func TestOwnerRepository_Update(t *testing.T) {
 }
 
 func TestOwnerRepository_SoftDelete(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-
+	db := sqlite.SetupTestDB(t)
 	repo := sqlite.NewOwnerRepository(db)
 	ctx := context.Background()
 
@@ -146,9 +106,7 @@ func TestOwnerRepository_SoftDelete(t *testing.T) {
 }
 
 func TestOwnerRepository_List(t *testing.T) {
-	db := setupTestDB(t)
-	defer db.Close()
-
+	db := sqlite.SetupTestDB(t)
 	repo := sqlite.NewOwnerRepository(db)
 	ctx := context.Background()
 

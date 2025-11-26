@@ -1,4 +1,4 @@
-// presentation/fyne/screens/contractors_screen.go
+// presentation/fyne/screens/expense_category_screen.go
 package screens
 
 import (
@@ -11,14 +11,14 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
-	"osbb-accounting/application/usecase/contractor"
+	"osbb-accounting/application/usecase/expense_category"
 )
 
-// ContractorsScreen - екран списку контрагентів
-type ContractorsScreen struct {
-	window            fyne.Window
-	contractorService *service.ContractorService
-	authManager       interface {
+// ExpenseCategoryScreen - екран списку категорій витрат
+type ExpenseCategoryScreen struct {
+	window                 fyne.Window
+	expenseCategoryService *service.ExpenseCategoryService
+	authManager            interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
 	}
@@ -28,50 +28,50 @@ type ContractorsScreen struct {
 	table   *widget.Table
 
 	// Data
-	contractors []*contractor.ContractorOutput
+	categories []*expense_category.ExpenseCategoryOutput
 
 	// Filters
 	searchEntry *widget.Entry
 }
 
-// NewContractorsScreen створює новий екран
-func NewContractorsScreen(
+// NewExpenseCategoryScreen створює новий екран
+func NewExpenseCategoryScreen(
 	window fyne.Window,
-	contractorService *service.ContractorService,
+	expenseCategoryService *service.ExpenseCategoryService,
 	authManager interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
 	},
-) *ContractorsScreen {
-	s := &ContractorsScreen{
-		window:            window,
-		contractorService: contractorService,
-		authManager:       authManager,
+) *ExpenseCategoryScreen {
+	s := &ExpenseCategoryScreen{
+		window:                 window,
+		expenseCategoryService: expenseCategoryService,
+		authManager:            authManager,
 	}
 	s.buildUI()
 	return s
 }
 
-func (s *ContractorsScreen) buildUI() {
+func (s *ExpenseCategoryScreen) buildUI() {
 	// Buttons
-	createButton := widget.NewButtonWithIcon("Додати контрагента", theme.ContentAddIcon(), func() {
-		s.showContractorDialog(nil)
+	createButton := widget.NewButtonWithIcon("Додати категорію", theme.ContentAddIcon(), func() {
+		s.showCategoryDialog(nil)
 	})
 	createButton.Importance = widget.HighImportance
 
 	refreshButton := widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
-		s.loadContractors()
+		s.loadCategories()
 	})
 
 	// Filters
 	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("Пошук (Назва, ЄДРПОУ)...")
-	s.searchEntry.OnSubmitted = func(_ string) { s.loadContractors() }
+	s.searchEntry.SetPlaceHolder("Пошук (Назва)...")
+	s.searchEntry.OnSubmitted = func(_ string) { s.loadCategories() }
 
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.contractors) + 1, 6 // +1 for header
+			return len(s.categories) + 1, 5 // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("Cell content")
@@ -81,18 +81,18 @@ func (s *ContractorsScreen) buildUI() {
 
 			if id.Row == 0 {
 				// Headers
-				headers := []string{"Назва", "Тип", "ЄДРПОУ", "Контакт", "Статус", "Дії"}
+				headers := []string{"Назва", "Тип", "Опис", "Статус", "Дії"}
 				label.SetText(headers[id.Col])
 				label.TextStyle = fyne.TextStyle{Bold: true}
 				return
 			}
 
 			// Data
-			if id.Row-1 >= len(s.contractors) {
+			if id.Row-1 >= len(s.categories) {
 				label.SetText("")
 				return
 			}
-			c := s.contractors[id.Row-1]
+			c := s.categories[id.Row-1]
 
 			// Reset style
 			label.TextStyle = fyne.TextStyle{}
@@ -102,21 +102,19 @@ func (s *ContractorsScreen) buildUI() {
 				label.SetText(c.Name)
 			case 1: // Type
 				label.SetText(c.TypeDisplayName)
-			case 2: // EDRPOU
-				if c.EDRPOU != nil {
-					label.SetText(*c.EDRPOU)
+			case 2: // Description
+				if c.Description != nil {
+					label.SetText(*c.Description)
 				} else {
 					label.SetText("-")
 				}
-			case 3: // Contact
-				label.SetText(c.ContactInfo)
-			case 4: // Status
+			case 3: // Status
 				if c.IsActive {
-					label.SetText("Активний")
+					label.SetText("Активна")
 				} else {
-					label.SetText("Неактивний")
+					label.SetText("Неактивна")
 				}
-			case 5: // Actions
+			case 4: // Actions
 				label.SetText("⚙️")
 			}
 		},
@@ -125,17 +123,16 @@ func (s *ContractorsScreen) buildUI() {
 	// Column widths
 	s.table.SetColumnWidth(0, 200) // Name
 	s.table.SetColumnWidth(1, 150) // Type
-	s.table.SetColumnWidth(2, 100) // EDRPOU
-	s.table.SetColumnWidth(3, 250) // Contact
-	s.table.SetColumnWidth(4, 100) // Status
-	s.table.SetColumnWidth(5, 50)  // Actions
+	s.table.SetColumnWidth(2, 300) // Description
+	s.table.SetColumnWidth(3, 100) // Status
+	s.table.SetColumnWidth(4, 50)  // Actions
 
 	s.table.OnSelected = func(id widget.TableCellID) {
 		s.table.Unselect(id)
 		if id.Row == 0 {
 			return
 		}
-		if id.Col == 5 {
+		if id.Col == 4 {
 			s.showActionsMenu(id.Row - 1)
 		}
 	}
@@ -155,58 +152,58 @@ func (s *ContractorsScreen) buildUI() {
 		s.table,
 	)
 
-	s.loadContractors()
+	s.loadCategories()
 }
 
-func (s *ContractorsScreen) Render() fyne.CanvasObject {
+func (s *ExpenseCategoryScreen) Render() fyne.CanvasObject {
 	return s.content
 }
 
-func (s *ContractorsScreen) loadContractors() {
+func (s *ExpenseCategoryScreen) loadCategories() {
 	ctx := context.Background()
-	input := contractor.ListContractorsInput{
+	input := expense_category.ListExpenseCategoriesInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		Limit:         100,
 		SearchQuery:   s.searchEntry.Text,
 	}
 
-	output, err := s.contractorService.List(ctx, input)
+	output, err := s.expenseCategoryService.List(ctx, input)
 	if err != nil {
 		dialog.ShowError(err, s.window)
 		return
 	}
 
-	s.contractors = output.Contractors
+	s.categories = output.Categories
 	s.table.Refresh()
 }
 
-func (s *ContractorsScreen) showContractorDialog(existing *contractor.ContractorOutput) {
-	d := NewContractorFormDialog(
+func (s *ExpenseCategoryScreen) showCategoryDialog(existing *expense_category.ExpenseCategoryOutput) {
+	d := NewExpenseCategoryFormDialog(
 		s.window,
-		s.contractorService,
+		s.expenseCategoryService,
 		s.authManager,
 		existing,
 	)
 	d.SetOnSaved(func() {
-		s.loadContractors()
+		s.loadCategories()
 	})
 	d.Show()
 }
 
-func (s *ContractorsScreen) showActionsMenu(rowIndex int) {
-	if rowIndex < 0 || rowIndex >= len(s.contractors) {
+func (s *ExpenseCategoryScreen) showActionsMenu(rowIndex int) {
+	if rowIndex < 0 || rowIndex >= len(s.categories) {
 		return
 	}
-	c := s.contractors[rowIndex]
+	c := s.categories[rowIndex]
 
 	menu := fyne.NewMenu("Дії",
 		fyne.NewMenuItem("Редагувати", func() {
-			s.showContractorDialog(c)
+			s.showCategoryDialog(c)
 		}),
 		fyne.NewMenuItem("Видалити", func() {
-			dialog.ShowConfirm("Видалення", "Ви впевнені, що хочете видалити цього контрагента?", func(ok bool) {
+			dialog.ShowConfirm("Видалення", "Ви впевнені, що хочете видалити цю категорію?", func(ok bool) {
 				if ok {
-					s.deleteContractor(c.ID)
+					s.deleteCategory(c.ID)
 				}
 			}, s.window)
 		}),
@@ -215,15 +212,15 @@ func (s *ContractorsScreen) showActionsMenu(rowIndex int) {
 	widget.ShowPopUpMenuAtPosition(menu, s.window.Canvas(), fyne.CurrentApp().Driver().AbsolutePositionForObject(s.table))
 }
 
-func (s *ContractorsScreen) deleteContractor(id int64) {
+func (s *ExpenseCategoryScreen) deleteCategory(id int64) {
 	ctx := context.Background()
-	_, err := s.contractorService.Delete(ctx, contractor.DeleteContractorInput{
+	_, err := s.expenseCategoryService.Delete(ctx, expense_category.DeleteExpenseCategoryInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
-		ContractorID:  id,
+		CategoryID:    id,
 	})
 	if err != nil {
 		dialog.ShowError(err, s.window)
 		return
 	}
-	s.loadContractors()
+	s.loadCategories()
 }
