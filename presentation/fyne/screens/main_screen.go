@@ -13,6 +13,14 @@ import (
 )
 
 // ShowMainScreen будує головний інтерфейс з боковим меню та контентом
+// MenuItem defines a single item in the navigation menu
+type MenuItem struct {
+	Title      string
+	Icon       fyne.Resource
+	Permission string // Empty if public
+	ScreenFunc func() fyne.CanvasObject
+}
+
 // ShowMainScreen будує головний інтерфейс з боковим меню та контентом
 func ShowMainScreen(
 	window fyne.Window,
@@ -41,190 +49,133 @@ func ShowMainScreen(
 	)
 
 	// --- Content Container ---
-	// Це контейнер, в якому буде змінюватись вміст при кліку на меню
 	contentContainer := container.NewStack()
 
-	// Початковий екран - Dashboard (Заглушка)
-	dashboardLabel := widget.NewLabel("Ласкаво просимо до системи управління ОСББ!")
-	dashboardLabel.Alignment = fyne.TextAlignCenter
-	contentContainer.Objects = []fyne.CanvasObject{container.NewCenter(dashboardLabel)}
+	// Початковий екран - Dashboard
+	dashboardScreen := NewDashboardScreen(
+		window,
+		services.ChargeService,
+		services.PaymentService,
+		authManager,
+	)
+	contentContainer.Objects = []fyne.CanvasObject{dashboardScreen.Render()}
 
-	// --- Navigation Menu ---
-	menuItems := []string{
-		"📊 Головна",
-		"👥 Власники",
-		"🏢 Квартири",
-		"📝 Частки власності", // Ownership Shares
-		"💰 Нарахування",
-		"💳 Платежі",
-		"💸 Витрати",
-		"📂 Категорії витрат",
-		"👷 Підрядники",
-		"⚙️ Налаштування",
+	// --- Navigation Menu Definition ---
+	allMenuItems := []MenuItem{
+		{
+			Title: "📊 Головна",
+			Icon:  theme.HomeIcon(),
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewDashboardScreen(window, services.ChargeService, services.PaymentService, authManager).Render()
+			},
+		},
+		{
+			Title:      "👥 Власники",
+			Icon:       theme.AccountIcon(),
+			Permission: "owners.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewOwnersScreen(window, services.OwnerService, authManager).Render()
+			},
+		},
+		{
+			Title:      "🏢 Квартири",
+			Icon:       theme.StorageIcon(),
+			Permission: "apartments.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewApartmentsScreen(window, services.ApartmentService, authManager).Render()
+			},
+		},
+		{
+			Title:      "📝 Частки власності",
+			Icon:       theme.DocumentIcon(),
+			Permission: "ownership.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewOwnershipSharesScreen(window, services.ApartmentService, services.OwnerService, services.OwnershipService, authManager).Render()
+			},
+		},
+		{
+			Title:      "💰 Нарахування",
+			Icon:       theme.GridIcon(),
+			Permission: "charges.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewChargesScreen(window, services.ChargeService, services.OwnershipService, authManager).Render()
+			},
+		},
+		{
+			Title:      "💳 Платежі",
+			Icon:       theme.DocumentPrintIcon(),
+			Permission: "payments.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewPaymentsScreen(window, services.PaymentService, services.OwnershipService, authManager).Render()
+			},
+		},
+		{
+			Title:      "💸 Витрати",
+			Icon:       theme.ContentRemoveIcon(),
+			Permission: "expenses.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewExpensesScreen(window, services.ExpenseService, authManager).Render()
+			},
+		},
+		{
+			Title:      "📂 Категорії витрат",
+			Icon:       theme.ListIcon(),
+			Permission: "expenses.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewExpenseCategoryScreen(window, services.ExpenseCategoryService, authManager).Render()
+			},
+		},
+		{
+			Title:      "👷 Підрядники",
+			Icon:       theme.FolderIcon(),
+			Permission: "contractors.read",
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewContractorsScreen(window, services.ContractorService, authManager).Render()
+			},
+		},
+		{
+			Title: "⚙️ Налаштування",
+			Icon:  theme.SettingsIcon(),
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewSettingsScreen(window, authManager).Render()
+			},
+		},
 	}
 
+	// Filter menu items based on permissions
+	var visibleMenuItems []MenuItem
+	for _, item := range allMenuItems {
+		if item.Permission == "" || authManager.HasPermission(item.Permission) {
+			visibleMenuItems = append(visibleMenuItems, item)
+		}
+	}
+
+	// --- Navigation Menu UI ---
 	menuList := widget.NewList(
-		func() int { return len(menuItems) },
+		func() int { return len(visibleMenuItems) },
 		func() fyne.CanvasObject {
 			return container.NewHBox(widget.NewIcon(theme.HomeIcon()), widget.NewLabel("Template"))
 		},
 		func(id widget.ListItemID, item fyne.CanvasObject) {
 			box := item.(*fyne.Container)
-			label := box.Objects[1].(*widget.Label)
 			icon := box.Objects[0].(*widget.Icon)
+			label := box.Objects[1].(*widget.Label)
 
-			label.SetText(menuItems[id])
-
-			// Іконки для меню
-			switch id {
-			case 0:
-				icon.SetResource(theme.HomeIcon())
-			case 1:
-				icon.SetResource(theme.AccountIcon())
-			case 2:
-				icon.SetResource(theme.StorageIcon())
-			case 3:
-				icon.SetResource(theme.DocumentIcon())
-			case 4:
-				icon.SetResource(theme.GridIcon())
-			case 5:
-				icon.SetResource(theme.DocumentPrintIcon())
-			case 6:
-				icon.SetResource(theme.ContentRemoveIcon())
-			case 7:
-				icon.SetResource(theme.ListIcon())
-			case 8:
-				icon.SetResource(theme.FolderIcon())
-			case 9:
-				icon.SetResource(theme.SettingsIcon())
-			}
+			menuItem := visibleMenuItems[id]
+			label.SetText(menuItem.Title)
+			icon.SetResource(menuItem.Icon)
 		},
 	)
 
-	// Логіка перемикання екранів
 	menuList.OnSelected = func(id widget.ListItemID) {
-		var newContent fyne.CanvasObject
-
-		switch id {
-		case 0: // Головна
-			screen := NewDashboardScreen(
-				window,
-				services.ChargeService,
-				services.PaymentService,
-				authManager,
-			)
-			newContent = screen.Render()
-
-		case 1: // Власники
-			if authManager.HasPermission("owners.read") {
-				// Ініціалізуємо екран власників
-				screen := NewOwnersScreen(window, services.OwnerService, authManager)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 2: // Квартири
-			if authManager.HasPermission("apartments.read") {
-				screen := NewApartmentsScreen(window, services.ApartmentService, authManager)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 3: // Частки власності
-			if authManager.HasPermission("ownership.read") {
-				// Ініціалізуємо екран часток
-				screen := NewOwnershipSharesScreen(
-					window,
-					services.ApartmentService,
-					services.OwnerService,
-					services.OwnershipService,
-					authManager,
-				)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 4: // Нарахування
-			if authManager.HasPermission("charges.read") {
-				screen := NewChargesScreen(
-					window,
-					services.ChargeService,
-					services.OwnershipService,
-					authManager,
-				)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 5: // Платежі
-			if authManager.HasPermission("payments.read") {
-				screen := NewPaymentsScreen(
-					window,
-					services.PaymentService,
-					services.OwnershipService,
-					authManager,
-				)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 6: // Витрати
-			if authManager.HasPermission("expenses.read") {
-				screen := NewExpensesScreen(
-					window,
-					services.ExpenseService,
-					authManager,
-				)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 7: // Категорії витрат
-			if authManager.HasPermission("expenses.read") {
-				screen := NewExpenseCategoryScreen(
-					window,
-					services.ExpenseCategoryService,
-					authManager,
-				)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 8: // Підрядники
-			if authManager.HasPermission("contractors.read") {
-				screen := NewContractorsScreen(
-					window,
-					services.ContractorService,
-					authManager,
-				)
-				newContent = screen.Render()
-			} else {
-				newContent = createAccessDeniedPlaceholder()
-			}
-
-		case 9: // Налаштування
-			screen := NewSettingsScreen(window, authManager)
-			newContent = screen.Render()
-
-		default:
-			newContent = container.NewCenter(widget.NewLabel(fmt.Sprintf("Розділ '%s' в розробці", menuItems[id])))
+		if id >= 0 && id < len(visibleMenuItems) {
+			newContent := visibleMenuItems[id].ScreenFunc()
+			contentContainer.Objects = []fyne.CanvasObject{newContent}
+			contentContainer.Refresh()
 		}
-
-		// Оновлюємо центральний контейнер
-		contentContainer.Objects = []fyne.CanvasObject{newContent}
-		contentContainer.Refresh()
 	}
 
 	// --- Layout Assembly ---
-
-	// Ліва панель (Меню)
 	sidebar := container.NewBorder(
 		nil,         // top
 		userInfoBox, // bottom
@@ -233,9 +184,8 @@ func ShowMainScreen(
 		menuList,    // center
 	)
 
-	// Розділювач
 	split := container.NewHSplit(sidebar, contentContainer)
-	split.Offset = 0.25 // 25% ширини для меню
+	split.Offset = 0.25 // 25% width for menu
 
 	window.SetContent(split)
 }
