@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -78,16 +77,15 @@ func (s *ExpenseCategoryScreen) buildUI() {
 			return len(s.categories) + 1, 5 // +1 for header
 		},
 		func() fyne.CanvasObject {
-			return widget.NewLabel("Cell content")
+			return newTableTemplate()
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
 				// Headers
-				headers := []string{"Назва", "Тип", "Опис", "Статус", "Дії"}
-				label.SetText(headers[id.Col])
-				label.TextStyle = fyne.TextStyle{Bold: true}
+				renderTableHeader(label,
+					[]string{"Назва", "Тип", "Опис", "Статус", "Дії"}, id.Col)
 				return
 			}
 
@@ -111,17 +109,19 @@ func (s *ExpenseCategoryScreen) buildUI() {
 			case 3: // Status
 				label.SetText(activeStatus(c.IsActive))
 			case 4: // Actions
-				label.SetText("⚙️")
+				renderActionColumn(label)
 			}
 		},
 	)
 
 	// Column widths
-	s.table.SetColumnWidth(0, 200) // Name
-	s.table.SetColumnWidth(1, 150) // Type
-	s.table.SetColumnWidth(2, 300) // Description
-	s.table.SetColumnWidth(3, 100) // Status
-	s.table.SetColumnWidth(4, 50)  // Actions
+	setupTableColumnWidths(s.table, map[int]float32{
+		0: 200, // Name
+		1: 150, // Type
+		2: 300, // Description
+		3: 100, // Status
+		4: 50,  // Actions
+	})
 
 	s.table.OnSelected = func(id widget.TableCellID) {
 		s.table.Unselect(id)
@@ -138,22 +138,8 @@ func (s *ExpenseCategoryScreen) buildUI() {
 }
 
 func (s *ExpenseCategoryScreen) Render() fyne.CanvasObject {
-	// Toolbar container
-	toolbar := container.NewBorder(
-		nil, nil,
-		container.NewHBox(s.createButton, s.refreshButton),
-		nil,
-		container.NewVBox(s.searchEntry, s.filterSelect),
-	)
-
-	// Layout
-	content := container.NewBorder(
-		toolbar,
-		s.statsLabel,
-		nil, nil,
-		s.table,
-	)
-	return content
+	toolbar := buildStandardToolbar(s.createButton, s.refreshButton, s.searchEntry, s.filterSelect)
+	return buildStandardLayout(toolbar, s.table, s.statsLabel)
 }
 
 func (s *ExpenseCategoryScreen) loadCategories() {
@@ -195,30 +181,19 @@ func (s *ExpenseCategoryScreen) showActionsMenu(rowIndex int) {
 	}
 	c := s.categories[rowIndex]
 
-	actions := []common.Action{
-		{
-			Label: "✏️ Редагувати",
-			OnTap: func() { s.showCategoryDialog(c) },
-		},
-		{
-			Label:      "🗑️ Видалити",
-			OnTap:      func() { s.confirmDelete(c) },
-			Importance: widget.DangerImportance,
-		},
-	}
+	actions := buildStandardActions(
+		func() { s.showCategoryDialog(c) },
+		func() { s.confirmDelete(c) },
+		nil,
+	)
 
 	common.ShowActionsMenu(s.window, "Дії з категорією: "+c.Name, actions)
 }
 
 func (s *ExpenseCategoryScreen) confirmDelete(c *expense_category.ExpenseCategoryOutput) {
-	common.ShowDeleteConfirmation(
-		s.window,
-		"Підтвердження видалення",
-		"Ви впевнені, що хочете видалити категорію '"+c.Name+"'?",
-		func() {
-			s.deleteCategory(c.ID)
-		},
-	)
+	showConfirmDeleteDialog(s.window, "категорію '"+c.Name+"'", func() {
+		s.deleteCategory(c.ID)
+	})
 }
 
 func (s *ExpenseCategoryScreen) deleteCategory(id int64) {

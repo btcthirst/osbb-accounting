@@ -4,6 +4,12 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
+
+	"osbb-accounting/presentation/fyne/common"
 )
 
 // ptrToString safely dereferences a string pointer
@@ -51,4 +57,97 @@ func ptrTimeToString(ptr *time.Time, format, defaultVal string) string {
 		return ptr.Format(format)
 	}
 	return defaultVal
+}
+
+// ============================================================================
+// Table Helper Functions
+// ============================================================================
+
+// newTableTemplate створює базовий template для комірки таблиці
+func newTableTemplate() *widget.Label {
+	label := widget.NewLabel("Template")
+	label.Truncation = fyne.TextTruncateEllipsis
+	return label
+}
+
+// renderTableHeader рендерить заголовок таблиці
+func renderTableHeader(label *widget.Label, headers []string, colIndex int) {
+	if colIndex < len(headers) {
+		label.SetText(headers[colIndex])
+		label.TextStyle = fyne.TextStyle{Bold: true}
+	}
+}
+
+// setupTableColumnWidths встановлює ширину колонок таблиці
+func setupTableColumnWidths(table *widget.Table, widths map[int]float32) {
+	for col, width := range widths {
+		table.SetColumnWidth(col, width)
+	}
+}
+
+// renderActionColumn рендерить колонку дій (іконка налаштувань)
+func renderActionColumn(label *widget.Label) {
+	label.SetText("⚙️")
+}
+
+// ============================================================================
+// Layout Helper Functions
+// ============================================================================
+
+// buildStandardToolbar створює стандартний toolbar з кнопками та фільтрами
+func buildStandardToolbar(createButton, refreshButton *widget.Button, filters ...fyne.CanvasObject) *fyne.Container {
+	return container.NewBorder(
+		nil, nil,
+		container.NewHBox(createButton, refreshButton),
+		nil,
+		container.NewVBox(filters...),
+	)
+}
+
+// buildStandardLayout створює стандартний layout екрану зі списком
+func buildStandardLayout(toolbar *fyne.Container, table *widget.Table, statsLabel *widget.Label) *fyne.Container {
+	return container.NewBorder(
+		toolbar,    // top
+		statsLabel, // bottom
+		nil, nil,   // left, right
+		table, // center
+	)
+}
+
+// ============================================================================
+// Dialog Helper Functions
+// ============================================================================
+
+// showConfirmDeleteDialog показує діалог підтвердження видалення
+func showConfirmDeleteDialog(window fyne.Window, entityName string, onDelete func()) {
+	common.ShowDeleteConfirmation(
+		window,
+		"Підтвердження видалення",
+		fmt.Sprintf("Ви впевнені, що хочете видалити %s?", entityName),
+		onDelete,
+	)
+}
+
+// buildStandardActions створює стандартний набір дій (Редагувати, Видалити, Деталі)
+func buildStandardActions(onEdit func(), onDelete func(), onDetails func()) []common.Action {
+	actions := []common.Action{
+		{
+			Label: "✏️ Редагувати",
+			OnTap: onEdit,
+		},
+		{
+			Label:      "🗑️ Видалити",
+			OnTap:      onDelete,
+			Importance: widget.DangerImportance,
+		},
+	}
+
+	if onDetails != nil {
+		actions = append(actions, common.Action{
+			Label: "ℹ️ Деталі",
+			OnTap: onDetails,
+		})
+	}
+
+	return actions
 }

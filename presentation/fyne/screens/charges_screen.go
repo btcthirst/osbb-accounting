@@ -104,16 +104,15 @@ func (s *ChargesScreen) buildTable() {
 			return len(s.filteredCharges) + 1, 7 // +1 для заголовків, 7 колонок
 		},
 		func() fyne.CanvasObject {
-			return widget.NewLabel("Template")
+			return newTableTemplate()
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
 				// Заголовки
-				headers := []string{"№", "Дата", "Період", "Тип", "Сума", "Платник", "Дії"}
-				label.SetText(headers[id.Col])
-				label.TextStyle = fyne.TextStyle{Bold: true}
+				renderTableHeader(label,
+					[]string{"№", "Дата", "Період", "Тип", "Сума", "Платник", "Дії"}, id.Col)
 				return
 			}
 
@@ -141,19 +140,21 @@ func (s *ChargesScreen) buildTable() {
 				// Поки що виводимо ID частки, але це треба виправити в майбутньому
 				label.SetText(fmt.Sprintf("ID: %d", c.OwnershipShareID))
 			case 6: // Дії
-				label.SetText("⚙️")
+				renderActionColumn(label)
 			}
 		},
 	)
 
 	// Ширина колонок
-	s.chargesTable.SetColumnWidth(0, 50)  // №
-	s.chargesTable.SetColumnWidth(1, 100) // Дата
-	s.chargesTable.SetColumnWidth(2, 80)  // Період
-	s.chargesTable.SetColumnWidth(3, 120) // Тип
-	s.chargesTable.SetColumnWidth(4, 100) // Сума
-	s.chargesTable.SetColumnWidth(5, 150) // Платник
-	s.chargesTable.SetColumnWidth(6, 80)  // Дії
+	setupTableColumnWidths(s.chargesTable, map[int]float32{
+		0: 50,  // №
+		1: 100, // Дата
+		2: 80,  // Період
+		3: 120, // Тип
+		4: 100, // Сума
+		5: 150, // Платник
+		6: 80,  // Дії
+	})
 
 	// Клік на комірку
 	s.chargesTable.OnSelected = func(id widget.TableCellID) {
@@ -324,23 +325,13 @@ func (s *ChargesScreen) showChargeDetails(c *charge.ChargeOutput) {
 
 // showActionsMenu показує меню дій.
 func (s *ChargesScreen) showActionsMenu(c *charge.ChargeOutput) {
-	actions := []common.Action{
-		{
-			Label: "✏️ Редагувати",
-			OnTap: func() { s.showEditDialog(c) },
-		},
-		{
-			Label:      "🗑️ Видалити",
-			OnTap:      func() { s.confirmDelete(c) },
-			Importance: widget.DangerImportance,
-		},
-		{
-			Label: "ℹ️ Деталі",
-			OnTap: func() { s.showChargeDetails(c) },
-		},
-	}
+	actions := buildStandardActions(
+		func() { s.showEditDialog(c) },
+		func() { s.confirmDelete(c) },
+		func() { s.showChargeDetails(c) },
+	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Нарахування #%d", c.ID), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з нарахуванням #%d", c.ID), actions)
 }
 
 // showCreateDialog показує діалог створення.
@@ -363,14 +354,9 @@ func (s *ChargesScreen) showEditDialog(c *charge.ChargeOutput) {
 
 // confirmDelete підтверджує видалення.
 func (s *ChargesScreen) confirmDelete(c *charge.ChargeOutput) {
-	common.ShowDeleteConfirmation(
-		s.window,
-		"Підтвердження видалення",
-		fmt.Sprintf("Видалити нарахування #%d на суму %.2f грн?", c.ID, c.Amount),
-		func() {
-			s.deleteCharge(c)
-		},
-	)
+	showConfirmDeleteDialog(s.window, fmt.Sprintf("нарахування #%d", c.ID), func() {
+		s.deleteCharge(c)
+	})
 }
 
 // deleteCharge видаляє нарахування.

@@ -4,19 +4,19 @@
 Кнопки (на всіх екранах зі списками):
 Кнопка "Додати": widget.NewButtonWithIcon("Додати...", theme.ContentAddIcon(), ...)
 З Importance = widget.HighImportance
-Кнопка "Оновити": widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), ...)
+Кнопка "Оновити": widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), ...)✅ 
 
 Поля вводу:
-searchEntry: поле пошуку з placeholder "🔍 Пошук..."
-filterSelect: випадаючий список для фільтрації
+searchEntry: поле пошуку з placeholder "🔍 Пошук..."✅
+filterSelect: випадаючий список для фільтрації✅
 
 Таблиці:
-table *widget.Table: відображення даних
-Колонка "№" (порядковий номер)
-Колонка "Дії" з емодзі "⚙️"
-Заголовки з жирним шрифтом (TextStyle{Bold: true})
+table *widget.Table: відображення даних✅
+Колонка "№" (порядковий номер)✅
+Колонка "Дії" з емодзі "⚙️"✅
+Заголовки з жирним шрифтом (TextStyle{Bold: true})✅
 Статистика:
-statsLabel: відображає кількість відфільтрованих/загальних записів 
+statsLabel: відображає кількість відфільтрованих/загальних записів ✅
 
 2. Структура Layout
 go
@@ -26,7 +26,7 @@ toolbar := container.NewBorder(
     container.NewHBox(createButton, refreshButton),
     nil,
     searchEntry / filterContainer,
-)
+)✅
 
 // Main content
 content := container.NewBorder(
@@ -34,7 +34,8 @@ content := container.NewBorder(
     statsLabel, // bottom
     nil, nil,   // left, right
     table,      // center
-)
+) ✅
+
 3. Функції (паттерни)
 Завантаження даних:
 load*() - завантажує дані з сервісу

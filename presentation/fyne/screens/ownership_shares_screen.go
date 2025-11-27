@@ -114,16 +114,15 @@ func (s *OwnershipSharesScreen) buildTable() {
 			return len(s.filteredShares) + 1, 7 // +1 для заголовків, 7 колонок
 		},
 		func() fyne.CanvasObject {
-			return widget.NewLabel("Template")
+			return newTableTemplate()
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
 				// Заголовки
-				headers := []string{"№", "Власник", "Квартира", "Частка", "Тип", "Дати", "Дії"}
-				label.SetText(headers[id.Col])
-				label.TextStyle = fyne.TextStyle{Bold: true}
+				renderTableHeader(label,
+					[]string{"№", "Власник", "Квартира", "Частка", "Тип", "Дати", "Дії"}, id.Col)
 				return
 			}
 
@@ -159,19 +158,21 @@ func (s *OwnershipSharesScreen) buildTable() {
 				}
 				label.SetText(dateStr)
 			case 6: // Дії
-				label.SetText("⚙️")
+				renderActionColumn(label)
 			}
 		},
 	)
 
 	// Ширина колонок
-	s.sharesTable.SetColumnWidth(0, 50)  // №
-	s.sharesTable.SetColumnWidth(1, 250) // Власник
-	s.sharesTable.SetColumnWidth(2, 100) // Квартира
-	s.sharesTable.SetColumnWidth(3, 120) // Частка
-	s.sharesTable.SetColumnWidth(4, 150) // Тип
-	s.sharesTable.SetColumnWidth(5, 200) // Дати
-	s.sharesTable.SetColumnWidth(6, 80)  // Дії
+	setupTableColumnWidths(s.sharesTable, map[int]float32{
+		0: 50,  // №
+		1: 250, // Власник
+		2: 100, // Квартира
+		3: 120, // Частка
+		4: 150, // Тип
+		5: 200, // Дати
+		6: 80,  // Дії
+	})
 
 	// Клік на комірку
 	s.sharesTable.OnSelected = func(id widget.TableCellID) {
@@ -357,24 +358,13 @@ func (s *OwnershipSharesScreen) showShareDetails(share *ownership.OwnershipShare
 
 // showActionsMenu показує меню дій з часткою.
 func (s *OwnershipSharesScreen) showActionsMenu(share *ownership.OwnershipShareDetailsOutput) {
-	actions := []common.Action{
-		{
-			Label: "✏️ Редагувати",
-			OnTap: func() { s.showEditDialog(share) },
-		},
-		{
-			Label:      "🗑️ Видалити",
-			OnTap:      func() { s.confirmDelete(share) },
-			Importance: widget.DangerImportance,
-		},
-		{
-			Label: "ℹ️ Деталі",
-			OnTap: func() { s.showShareDetails(share) },
-		},
-	}
+	actions := buildStandardActions(
+		func() { s.showEditDialog(share) },
+		func() { s.confirmDelete(share) },
+		func() { s.showShareDetails(share) },
+	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("%s - Кв. %s (%s)",
-		share.OwnerName, share.ApartmentNumber, share.ShareFraction), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з часткою #%d", share.ID), actions)
 }
 
 // showCreateDialog показує діалог створення частки.
@@ -397,23 +387,9 @@ func (s *OwnershipSharesScreen) showEditDialog(share *ownership.OwnershipShareDe
 
 // confirmDelete підтверджує видалення частки.
 func (s *OwnershipSharesScreen) confirmDelete(share *ownership.OwnershipShareDetailsOutput) {
-	common.ShowDeleteConfirmation(
-		s.window,
-		"Підтвердження видалення",
-		fmt.Sprintf(
-			"Ви впевнені, що хочете видалити частку власності?\n\n"+
-				"Власник: %s\n"+
-				"Квартира: №%s\n"+
-				"Частка: %s (%.1f%%)",
-			share.OwnerName,
-			share.ApartmentNumber,
-			share.ShareFraction,
-			share.SharePercentage,
-		),
-		func() {
-			s.deleteShare(share)
-		},
-	)
+	showConfirmDeleteDialog(s.window, fmt.Sprintf("частку власності #%d", share.ID), func() {
+		s.deleteShare(share)
+	})
 }
 
 // deleteShare видаляє частку.

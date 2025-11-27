@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -80,16 +79,15 @@ func (s *ExpensesScreen) buildUI() {
 			return len(s.expenses) + 1, 7 // +1 for header
 		},
 		func() fyne.CanvasObject {
-			return widget.NewLabel("Cell content")
+			return newTableTemplate()
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
 				// Headers
-				headers := []string{"ID", "Дата", "Категорія", "Сума", "Статус", "Підтверджено", "Дії"}
-				label.SetText(headers[id.Col])
-				label.TextStyle = fyne.TextStyle{Bold: true}
+				renderTableHeader(label,
+					[]string{"ID", "Дата", "Категорія", "Сума", "Статус", "Підтверджено", "Дії"}, id.Col)
 				return
 			}
 
@@ -121,19 +119,21 @@ func (s *ExpensesScreen) buildUI() {
 					label.SetText("Ні")
 				}
 			case 6: // Actions
-				label.SetText("⚙️")
+				renderActionColumn(label)
 			}
 		},
 	)
 
 	// Column widths
-	s.table.SetColumnWidth(0, 50)  // ID
-	s.table.SetColumnWidth(1, 100) // Date
-	s.table.SetColumnWidth(2, 150) // Category
-	s.table.SetColumnWidth(3, 100) // Amount
-	s.table.SetColumnWidth(4, 120) // Status
-	s.table.SetColumnWidth(5, 80)  // Approved
-	s.table.SetColumnWidth(6, 50)  // Actions
+	setupTableColumnWidths(s.table, map[int]float32{
+		0: 50,  // ID
+		1: 100, // Date
+		2: 150, // Category
+		3: 100, // Amount
+		4: 120, // Status
+		5: 80,  // Approved
+		6: 50,  // Actions
+	})
 
 	s.table.OnSelected = func(id widget.TableCellID) {
 		s.table.Unselect(id)
@@ -151,22 +151,8 @@ func (s *ExpensesScreen) buildUI() {
 }
 
 func (s *ExpensesScreen) Render() fyne.CanvasObject {
-	// Toolbar container
-	toolbar := container.NewBorder(
-		nil, nil,
-		container.NewHBox(s.createButton, s.refreshButton),
-		nil,
-		container.NewVBox(s.searchEntry, s.filterSelect),
-	)
-
-	// Layout
-	content := container.NewBorder(
-		toolbar,
-		s.statsLabel,
-		nil, nil,
-		s.table,
-	)
-	return content
+	toolbar := buildStandardToolbar(s.createButton, s.refreshButton, s.searchEntry, s.filterSelect)
+	return buildStandardLayout(toolbar, s.table, s.statsLabel)
 }
 
 func (s *ExpensesScreen) loadExpenses() {
@@ -208,29 +194,23 @@ func (s *ExpensesScreen) showActionsMenu(rowIndex int) {
 	}
 	e := s.expenses[rowIndex]
 
-	actions := []common.Action{
-		{
-			Label: "✏️ Редагувати",
-			OnTap: func() {
-				if e.IsApproved {
-					common.ShowInformation(s.window, "Інформація", "Не можна редагувати затверджену витрату")
-					return
-				}
-				s.showExpenseDialog(e)
-			},
+	actions := buildStandardActions(
+		func() {
+			if e.IsApproved {
+				common.ShowInformation(s.window, "Інформація", "Не можна редагувати затверджену витрату")
+				return
+			}
+			s.showExpenseDialog(e)
 		},
-		{
-			Label: "🗑️ Видалити",
-			OnTap: func() {
-				if e.IsApproved {
-					common.ShowInformation(s.window, "Інформація", "Не можна видалити затверджену витрату")
-					return
-				}
-				s.confirmDelete(e)
-			},
-			Importance: widget.DangerImportance,
+		func() {
+			if e.IsApproved {
+				common.ShowInformation(s.window, "Інформація", "Не можна видалити затверджену витрату")
+				return
+			}
+			s.confirmDelete(e)
 		},
-	}
+		nil,
+	)
 
 	if e.IsApproved {
 		actions = append(actions, common.Action{
@@ -248,14 +228,9 @@ func (s *ExpensesScreen) showActionsMenu(rowIndex int) {
 }
 
 func (s *ExpensesScreen) confirmDelete(e *expense.ExpenseOutput) {
-	common.ShowDeleteConfirmation(
-		s.window,
-		"Підтвердження видалення",
-		fmt.Sprintf("Ви впевнені, що хочете видалити витрату #%d?", e.ID),
-		func() {
-			s.deleteExpense(e.ID)
-		},
-	)
+	showConfirmDeleteDialog(s.window, fmt.Sprintf("витрату #%d", e.ID), func() {
+		s.deleteExpense(e.ID)
+	})
 }
 
 func (s *ExpensesScreen) deleteExpense(id int64) {

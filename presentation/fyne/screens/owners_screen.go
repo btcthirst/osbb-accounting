@@ -104,16 +104,15 @@ func (s *OwnersScreen) buildTable() {
 			return len(s.filteredOwners) + 1, 6 // +1 для заголовків, 6 колонок
 		},
 		func() fyne.CanvasObject {
-			return widget.NewLabel("Template")
+			return newTableTemplate()
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
 				// Заголовки
-				headers := []string{"№", "ПІБ", "Телефон", "Email", "ІПН", "Дії"}
-				label.SetText(headers[id.Col])
-				label.TextStyle = fyne.TextStyle{Bold: true}
+				renderTableHeader(label,
+					[]string{"№", "ПІБ", "Телефон", "Email", "ІПН", "Дії"}, id.Col)
 				return
 			}
 
@@ -152,18 +151,20 @@ func (s *OwnersScreen) buildTable() {
 					label.SetText("—")
 				}
 			case 5: // Дії
-				label.SetText("⚙️")
+				renderActionColumn(label)
 			}
 		},
 	)
 
 	// Ширина колонок
-	s.ownersTable.SetColumnWidth(0, 50)  // №
-	s.ownersTable.SetColumnWidth(1, 250) // ПІБ
-	s.ownersTable.SetColumnWidth(2, 150) // Телефон
-	s.ownersTable.SetColumnWidth(3, 200) // Email
-	s.ownersTable.SetColumnWidth(4, 120) // ІПН
-	s.ownersTable.SetColumnWidth(5, 80)  // Дії
+	setupTableColumnWidths(s.ownersTable, map[int]float32{
+		0: 50,  // №
+		1: 250, // ПІБ
+		2: 150, // Телефон
+		3: 200, // Email
+		4: 120, // ІПН
+		5: 80,  // Дії
+	})
 
 	// Клік на комірку
 	s.ownersTable.OnSelected = func(id widget.TableCellID) {
@@ -352,23 +353,13 @@ func (s *OwnersScreen) showOwnerDetails(o *owner.OwnerOutput) {
 
 // showActionsMenu показує меню дій з власником.
 func (s *OwnersScreen) showActionsMenu(o *owner.OwnerOutput) {
-	actions := []common.Action{
-		{
-			Label: "✏️ Редагувати",
-			OnTap: func() { s.showEditDialog(o) },
-		},
-		{
-			Label:      "🗑️ Видалити",
-			OnTap:      func() { s.confirmDelete(o) },
-			Importance: widget.DangerImportance,
-		},
-		{
-			Label: "ℹ️ Деталі",
-			OnTap: func() { s.showOwnerDetails(o) },
-		},
-	}
+	actions := buildStandardActions(
+		func() { s.showEditDialog(o) },
+		func() { s.confirmDelete(o) },
+		func() { s.showOwnerDetails(o) },
+	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з власником: %s", o.ShortName), actions)
+	common.ShowActionsMenu(s.window, "Дії з власником: "+o.FullName, actions)
 }
 
 // showCreateDialog показує діалог створення власника.
@@ -389,16 +380,11 @@ func (s *OwnersScreen) showEditDialog(o *owner.OwnerOutput) {
 	dialog.Show()
 }
 
-// confirmDelete підтверджує видалення власника.
+// confirmDelete підтверджує видалення.
 func (s *OwnersScreen) confirmDelete(o *owner.OwnerOutput) {
-	common.ShowDeleteConfirmation(
-		s.window,
-		"Підтвердження видалення",
-		fmt.Sprintf("Ви впевнені, що хочете видалити власника '%s'?", o.FullName),
-		func() {
-			s.deleteOwner(o)
-		},
-	)
+	showConfirmDeleteDialog(s.window, fmt.Sprintf("власника %s", o.FullName), func() {
+		s.deleteOwner(o)
+	})
 }
 
 // deleteOwner видаляє власника.

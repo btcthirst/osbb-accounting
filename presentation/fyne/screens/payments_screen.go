@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
@@ -78,16 +77,15 @@ func (s *PaymentsScreen) buildUI() {
 			return len(s.payments) + 1, 8 // +1 for header
 		},
 		func() fyne.CanvasObject {
-			return widget.NewLabel("Cell content")
+			return newTableTemplate()
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
 				// Headers
-				headers := []string{"ID", "Дата", "Період", "Метод", "Сума", "Підтверджено", "Квитанція", "Дії"}
-				label.SetText(headers[id.Col])
-				label.TextStyle = fyne.TextStyle{Bold: true}
+				renderTableHeader(label,
+					[]string{"ID", "Дата", "Період", "Метод", "Сума", "Підтверджено", "Квитанція", "Дії"}, id.Col)
 				return
 			}
 
@@ -129,20 +127,22 @@ func (s *PaymentsScreen) buildUI() {
 					label.SetText("")
 				}
 			case 7: // Actions
-				label.SetText("⚙️") // Placeholder for actions
+				renderActionColumn(label)
 			}
 		},
 	)
 
 	// Column widths
-	s.table.SetColumnWidth(0, 50)  // ID
-	s.table.SetColumnWidth(1, 100) // Date
-	s.table.SetColumnWidth(2, 80)  // Period
-	s.table.SetColumnWidth(3, 150) // Method
-	s.table.SetColumnWidth(4, 100) // Amount
-	s.table.SetColumnWidth(5, 80)  // Approved
-	s.table.SetColumnWidth(6, 100) // Receipt
-	s.table.SetColumnWidth(7, 50)  // Actions
+	setupTableColumnWidths(s.table, map[int]float32{
+		0: 50,  // ID
+		1: 100, // Date
+		2: 80,  // Period
+		3: 150, // Method
+		4: 100, // Amount
+		5: 80,  // Approved
+		6: 100, // Receipt
+		7: 50,  // Actions
+	})
 
 	s.table.OnSelected = func(id widget.TableCellID) {
 		s.table.Unselect(id) // Don't keep selection
@@ -175,25 +175,8 @@ func (s *PaymentsScreen) buildUI() {
 }
 
 func (s *PaymentsScreen) Render() fyne.CanvasObject {
-	// Toolbar container
-	toolbar := container.NewBorder(
-		nil, nil,
-		container.NewHBox(s.createButton, s.refreshButton),
-		nil,
-		container.NewVBox(
-			s.searchEntry,
-			s.filterSelect,
-		),
-	)
-
-	// Layout
-	content := container.NewBorder(
-		toolbar,
-		s.statsLabel,
-		nil, nil,
-		s.table,
-	)
-	return content
+	toolbar := buildStandardToolbar(s.createButton, s.refreshButton, s.searchEntry, s.filterSelect)
+	return buildStandardLayout(toolbar, s.table, s.statsLabel)
 }
 
 func (s *PaymentsScreen) loadPayments() {
@@ -260,29 +243,23 @@ func (s *PaymentsScreen) showActionsMenu(rowIndex int) {
 	}
 	p := s.payments[rowIndex]
 
-	actions := []common.Action{
-		{
-			Label: "✏️ Редагувати",
-			OnTap: func() {
-				if p.IsApproved {
-					common.ShowInformation(s.window, "Інформація", "Не можна редагувати підтверджений платіж")
-					return
-				}
-				s.showPaymentDialog(p)
-			},
+	actions := buildStandardActions(
+		func() {
+			if p.IsApproved {
+				common.ShowInformation(s.window, "Інформація", "Не можна редагувати підтверджений платіж")
+				return
+			}
+			s.showPaymentDialog(p)
 		},
-		{
-			Label: "🗑️ Видалити",
-			OnTap: func() {
-				if p.IsApproved {
-					common.ShowInformation(s.window, "Інформація", "Не можна видалити підтверджений платіж")
-					return
-				}
-				s.confirmDelete(p)
-			},
-			Importance: widget.DangerImportance,
+		func() {
+			if p.IsApproved {
+				common.ShowInformation(s.window, "Інформація", "Не можна видалити підтверджений платіж")
+				return
+			}
+			s.confirmDelete(p)
 		},
-	}
+		nil, // No details view yet
+	)
 
 	if p.IsApproved {
 		actions = append(actions, common.Action{
@@ -300,14 +277,9 @@ func (s *PaymentsScreen) showActionsMenu(rowIndex int) {
 }
 
 func (s *PaymentsScreen) confirmDelete(p *payment.PaymentOutput) {
-	common.ShowDeleteConfirmation(
-		s.window,
-		"Підтвердження видалення",
-		fmt.Sprintf("Ви впевнені, що хочете видалити платіж #%d?", p.ID),
-		func() {
-			s.deletePayment(p.ID)
-		},
-	)
+	showConfirmDeleteDialog(s.window, fmt.Sprintf("платіж #%d", p.ID), func() {
+		s.deletePayment(p.ID)
+	})
 }
 
 func (s *PaymentsScreen) deletePayment(id int64) {

@@ -94,20 +94,15 @@ func (s *ApartmentsScreen) buildTable() {
 			return len(s.filteredApartments) + 1, 6 // +1 для заголовків, 6 колонок
 		},
 		func() fyne.CanvasObject {
-			label := widget.NewLabel("Template")
-			label.Truncation = fyne.TextTruncateEllipsis
-			return label
+			return newTableTemplate()
 		},
 		func(id widget.TableCellID, cell fyne.CanvasObject) {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
 				// Заголовки
-				headers := []string{"№", "ПІБ", "Номер", "Жила площа", "Підїзд", "Дії"}
-				if id.Col < len(headers) {
-					label.SetText(headers[id.Col])
-					label.TextStyle = fyne.TextStyle{Bold: true}
-				}
+				renderTableHeader(label,
+					[]string{"№", "ПІБ", "Номер", "Жила площа", "Підїзд", "Дії"}, id.Col)
 				return
 			}
 
@@ -145,18 +140,20 @@ func (s *ApartmentsScreen) buildTable() {
 					label.SetText("—")
 				}
 			case 5: // Дії
-				label.SetText("⚙️")
+				renderActionColumn(label)
 			}
 		},
 	)
 
 	// Ширина колонок
-	s.apartmentsTable.SetColumnWidth(0, 50)  // №
-	s.apartmentsTable.SetColumnWidth(1, 250) // ПІБ
-	s.apartmentsTable.SetColumnWidth(2, 100) // Номер
-	s.apartmentsTable.SetColumnWidth(3, 100) // Жила площа
-	s.apartmentsTable.SetColumnWidth(4, 80)  // Підїзд
-	s.apartmentsTable.SetColumnWidth(5, 50)  // Дії
+	setupTableColumnWidths(s.apartmentsTable, map[int]float32{
+		0: 50,  // №
+		1: 250, // ПІБ
+		2: 100, // Номер
+		3: 100, // Жила площа
+		4: 80,  // Підїзд
+		5: 50,  // Дії
+	})
 
 	// Клік на комірку
 	s.apartmentsTable.OnSelected = func(id widget.TableCellID) {
@@ -354,21 +351,11 @@ func (s *ApartmentsScreen) showApartmentDetails(a *apartment.ApartmentOutput) {
 
 // showActionsMenu показує меню дій з власником.
 func (s *ApartmentsScreen) showActionsMenu(a *apartment.ApartmentOutput) {
-	actions := []common.Action{
-		{
-			Label: "✏️ Редагувати",
-			OnTap: func() { s.showEditDialog(a) },
-		},
-		{
-			Label:      "🗑️ Видалити",
-			OnTap:      func() { s.confirmDelete(a) },
-			Importance: widget.DangerImportance,
-		},
-		{
-			Label: "ℹ️ Деталі",
-			OnTap: func() { s.showApartmentDetails(a) },
-		},
-	}
+	actions := buildStandardActions(
+		func() { s.showEditDialog(a) },
+		func() { s.confirmDelete(a) },
+		func() { s.showApartmentDetails(a) },
+	)
 
 	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з квартирою № %s", a.ApartmentNumber), actions)
 }
@@ -393,14 +380,9 @@ func (s *ApartmentsScreen) showEditDialog(a *apartment.ApartmentOutput) {
 
 // confirmDelete підтверджує видалення.
 func (s *ApartmentsScreen) confirmDelete(a *apartment.ApartmentOutput) {
-	common.ShowDeleteConfirmation(
-		s.window,
-		"Підтвердження видалення",
-		fmt.Sprintf("Ви впевнені, що хочете видалити квартиру №%s?", a.ApartmentNumber),
-		func() {
-			s.deleteApartment(a)
-		},
-	)
+	showConfirmDeleteDialog(s.window, fmt.Sprintf("квартиру №%s", a.ApartmentNumber), func() {
+		s.deleteApartment(a)
+	})
 }
 
 // deleteApartment видаляє квартиру.
