@@ -9,7 +9,6 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -28,15 +27,19 @@ type PaymentsScreen struct {
 	}
 
 	// UI
-	content *fyne.Container
-	table   *widget.Table
+	createButton  *widget.Button
+	refreshButton *widget.Button
+	table         *widget.Table
+	searchEntry   *widget.Entry
+	filterSelect  *widget.Select
+	statsLabel    *widget.Label
 
 	// Data
-	payments []*payment.PaymentOutput
-
-	// Filters
-	searchEntry  *widget.Entry
-	filterSelect *widget.Select
+	payments         []*payment.PaymentOutput
+	filteredPayments []*payment.PaymentOutput
+	currentPage      int
+	pageSize         int
+	totalCount       int64
 }
 
 // NewPaymentsScreen створює новий екран
@@ -61,12 +64,11 @@ func NewPaymentsScreen(
 
 func (s *PaymentsScreen) buildUI() {
 	// Buttons
-	createButton := widget.NewButtonWithIcon("Додати платіж", theme.ContentAddIcon(), func() {
+	s.createButton = newCreateButton("Додати платіж", func() {
 		s.showPaymentDialog(nil)
 	})
-	createButton.Importance = widget.HighImportance
 
-	refreshButton := widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	s.refreshButton = newRefreshButton(func() {
 		s.loadPayments()
 	})
 
@@ -153,11 +155,9 @@ func (s *PaymentsScreen) buildUI() {
 	}
 
 	// Filters
-	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("Пошук...")
-	s.searchEntry.OnSubmitted = func(_ string) { s.loadPayments() }
+	s.searchEntry = newSearchEntry("Пошук...", func(_ string) { s.applyFilters() })
 
-	s.filterSelect = widget.NewSelect([]string{
+	s.filterSelect = newFilterSelect([]string{
 		"Всі",
 		"Поточний місяць",
 		"Минулий місяць",
@@ -167,30 +167,33 @@ func (s *PaymentsScreen) buildUI() {
 		s.loadPayments()
 	})
 
-	// Toolbar container
-	toolbar := container.NewBorder(
-		nil, nil,
-		container.NewHBox(createButton, refreshButton),
-		nil,
-		container.NewVBox(
-			s.searchEntry,
-			container.NewHBox(widget.NewLabel("Фільтр:"), s.filterSelect),
-		),
-	)
-
-	// Layout
-	s.content = container.NewBorder(
-		toolbar,
-		nil, nil, nil,
-		s.table,
-	)
+	// Stats
+	s.statsLabel = widget.NewLabel("")
 
 	// Trigger initial load
 	s.filterSelect.SetSelected("Всі")
 }
 
 func (s *PaymentsScreen) Render() fyne.CanvasObject {
-	return s.content
+	// Toolbar container
+	toolbar := container.NewBorder(
+		nil, nil,
+		container.NewHBox(s.createButton, s.refreshButton),
+		nil,
+		container.NewVBox(
+			s.searchEntry,
+			s.filterSelect,
+		),
+	)
+
+	// Layout
+	content := container.NewBorder(
+		toolbar,
+		s.statsLabel,
+		nil, nil,
+		s.table,
+	)
+	return content
 }
 
 func (s *PaymentsScreen) loadPayments() {
@@ -232,7 +235,9 @@ func (s *PaymentsScreen) loadPayments() {
 	}
 
 	s.payments = output.Payments
+	s.totalCount = output.Total
 	s.table.Refresh()
+	s.updateStats()
 }
 
 func (s *PaymentsScreen) showPaymentDialog(existing *payment.PaymentOutput) {
@@ -345,4 +350,36 @@ func (s *PaymentsScreen) unapprovePayment(id int64) {
 	}
 	common.ShowSuccess(s.window, "Підтвердження платежу скасовано")
 	s.loadPayments()
+}
+
+func (s *PaymentsScreen) applyFilters() {
+	s.filteredPayments = make([]*payment.PaymentOutput, 0)
+
+	filter := s.filterSelect.Selected
+	searchQuery := s.searchEntry.Text
+
+	for _, p := range s.payments {
+		// написати фільтри
+		if filter == "Всі" {
+			if "" != searchQuery {
+				continue
+			}
+		}
+
+		s.filteredPayments = append(s.filteredPayments, p)
+	}
+}
+
+// getStatsText повертає текст статистики.
+func (s *PaymentsScreen) getStatsText() string {
+	totalAmount := 0.0
+	for _, p := range s.payments {
+		totalAmount += p.Amount
+	}
+	return fmt.Sprintf("Показано: %d платежів | Загальна сума: %.2f грн", len(s.payments), totalAmount)
+}
+
+// updateStats оновлює статистику.
+func (s *PaymentsScreen) updateStats() {
+	s.statsLabel.SetText(s.getStatsText())
 }

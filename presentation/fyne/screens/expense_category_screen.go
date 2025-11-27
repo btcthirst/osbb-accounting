@@ -3,10 +3,10 @@ package screens
 
 import (
 	"context"
+	"fmt"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -24,14 +24,19 @@ type ExpenseCategoryScreen struct {
 	}
 
 	// UI
-	content *fyne.Container
-	table   *widget.Table
+	searchEntry   *widget.Entry
+	filterSelect  *widget.Select
+	createButton  *widget.Button
+	refreshButton *widget.Button
+	table         *widget.Table
+	statsLabel    *widget.Label
 
 	// Data
-	categories []*expense_category.ExpenseCategoryOutput
-
-	// Filters
-	searchEntry *widget.Entry
+	categories         []*expense_category.ExpenseCategoryOutput
+	filteredCategories []*expense_category.ExpenseCategoryOutput
+	currentPage        int
+	pageSize           int
+	totalCount         int64
 }
 
 // NewExpenseCategoryScreen створює новий екран
@@ -54,20 +59,19 @@ func NewExpenseCategoryScreen(
 
 func (s *ExpenseCategoryScreen) buildUI() {
 	// Buttons
-	createButton := widget.NewButtonWithIcon("Додати категорію", theme.ContentAddIcon(), func() {
+	s.createButton = newCreateButton("Додати категорію", func() {
 		s.showCategoryDialog(nil)
 	})
-	createButton.Importance = widget.HighImportance
 
-	refreshButton := widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	s.refreshButton = newRefreshButton(func() {
 		s.loadCategories()
 	})
 
 	// Filters
-	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("Пошук (Назва)...")
-	s.searchEntry.OnSubmitted = func(_ string) { s.loadCategories() }
+	s.searchEntry = newSearchEntry("Пошук (Назва)...", func(_ string) { s.applyFilters() })
+	s.filterSelect = newFilterSelect([]string{"Всі", "Активні", "Неактивні"}, func(_ string) { s.applyFilters() })
 
+	s.statsLabel = widget.NewLabel("")
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
@@ -129,26 +133,27 @@ func (s *ExpenseCategoryScreen) buildUI() {
 		}
 	}
 
-	// Toolbar container
-	toolbar := container.NewBorder(
-		nil, nil,
-		container.NewHBox(createButton, refreshButton),
-		nil,
-		s.searchEntry,
-	)
-
-	// Layout
-	s.content = container.NewBorder(
-		toolbar,
-		nil, nil, nil,
-		s.table,
-	)
-
+	s.filterSelect.SetSelectedIndex(0)
 	s.loadCategories()
 }
 
 func (s *ExpenseCategoryScreen) Render() fyne.CanvasObject {
-	return s.content
+	// Toolbar container
+	toolbar := container.NewBorder(
+		nil, nil,
+		container.NewHBox(s.createButton, s.refreshButton),
+		nil,
+		container.NewVBox(s.searchEntry, s.filterSelect),
+	)
+
+	// Layout
+	content := container.NewBorder(
+		toolbar,
+		s.statsLabel,
+		nil, nil,
+		s.table,
+	)
+	return content
 }
 
 func (s *ExpenseCategoryScreen) loadCategories() {
@@ -166,7 +171,9 @@ func (s *ExpenseCategoryScreen) loadCategories() {
 	}
 
 	s.categories = output.Categories
+	s.totalCount = output.Total
 	s.table.Refresh()
+	s.updateStats()
 }
 
 func (s *ExpenseCategoryScreen) showCategoryDialog(existing *expense_category.ExpenseCategoryOutput) {
@@ -226,4 +233,35 @@ func (s *ExpenseCategoryScreen) deleteCategory(id int64) {
 	}
 	common.ShowSuccess(s.window, "Категорію успішно видалено")
 	s.loadCategories()
+}
+
+func (s *ExpenseCategoryScreen) applyFilters() {
+
+	s.filteredCategories = make([]*expense_category.ExpenseCategoryOutput, 0)
+	for _, c := range s.categories {
+
+		switch s.filterSelect.Selected {
+		case "Всі":
+			s.filteredCategories = append(s.filteredCategories, c)
+		case "Активні":
+			if c.IsActive {
+				s.filteredCategories = append(s.filteredCategories, c)
+			}
+		case "Неактивні":
+			if !c.IsActive {
+				s.filteredCategories = append(s.filteredCategories, c)
+			}
+		}
+	}
+	s.table.Refresh()
+	s.updateStats()
+}
+
+func (s *ExpenseCategoryScreen) getStatsText() string {
+	return fmt.Sprintf("Показано: %d з %d категорій", len(s.categories), s.totalCount)
+}
+
+// updateStats оновлює статистику.
+func (s *ExpenseCategoryScreen) updateStats() {
+	s.statsLabel.SetText(s.getStatsText())
 }

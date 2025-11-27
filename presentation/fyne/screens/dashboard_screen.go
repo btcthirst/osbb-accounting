@@ -97,7 +97,7 @@ func (s *DashboardScreen) buildUI() {
 }
 
 func (s *DashboardScreen) createSummaryCard(title string, valueLabel *widget.Label, colorName fyne.ThemeColorName) fyne.CanvasObject {
-	bg := canvas.NewRectangle(theme.BackgroundColor())
+	bg := canvas.NewRectangle(theme.Color(theme.ColorNameBackground))
 	bg.StrokeColor = theme.Color(colorName)
 	bg.StrokeWidth = 2
 	bg.CornerRadius = 5

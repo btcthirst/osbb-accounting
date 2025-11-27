@@ -7,7 +7,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -32,7 +31,6 @@ type ApartmentsScreen struct {
 	//Дані
 	apartments         []*apartment.ApartmentOutput
 	filteredApartments []*apartment.ApartmentOutput
-	updateStats        func()
 	currentPage        int
 	pageSize           int
 	totalCount         int64
@@ -60,32 +58,23 @@ func NewApartmentsScreen(
 // buildUI створює інтерфейс екрану.
 func (s *ApartmentsScreen) buildUI() {
 	// 1. Спочатку ініціалізуємо всі віджети
-	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("🔍 Пошук за власником, номером...")
-	s.searchEntry.OnChanged = func(query string) {
-		s.applyFilters()
-	}
+	s.searchEntry = newSearchEntry(
+		"🔍 Пошук за власником, номером...",
+		func(query string) {
+			s.applyFilters()
+		})
 
-	s.filterSelect = widget.NewSelect([]string{
-		"Всі квартири",
-		"Перший підїзд",
-		"Другий підїзд",
-		"Третій підїзд",
-		"Четвертий підїзд",
-		"П'ятий підїзд",
-		"Шостий підїзд",
-		"Тільки активні",
-		"Неактивні",
-	}, func(value string) {
-		s.applyFilters()
-	})
+	s.filterSelect = newFilterSelect([]string{"Всі квартири", "Перший підїзд", "Другий підїзд", "Третій підїзд", "Четвертий підїзд", "П'ятий підїзд", "Шостий підїзд", "Тільки активні", "Неактивні"},
+		func(value string) {
+			s.applyFilters()
+		},
+	)
 
-	s.createButton = widget.NewButtonWithIcon("Додати квартиру", theme.ContentAddIcon(), func() {
+	s.createButton = newCreateButton("Додати квартиру", func() {
 		s.showCreateDialog()
 	})
-	s.createButton.Importance = widget.HighImportance
 
-	s.refreshButton = widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	s.refreshButton = newRefreshButton(func() {
 		s.loadApartments()
 	})
 
@@ -94,12 +83,7 @@ func (s *ApartmentsScreen) buildUI() {
 	// 2. Створюємо таблицю
 	s.buildTable()
 
-	// 3. Ініціалізуємо функцію оновлення статистики
-	s.updateStats = func() {
-		s.statsLabel.SetText(s.getStatsText())
-	}
-
-	// 4. Встановлюємо дефолтні значення (викличе applyFilters)
+	// 3. Встановлюємо дефолтні значення (викличе applyFilters)
 	s.filterSelect.SetSelected("Всі квартири")
 }
 
@@ -228,6 +212,11 @@ func (s *ApartmentsScreen) getStatsText() string {
 	return fmt.Sprintf("Показано: %d з %d квартир", len(s.filteredApartments), s.totalCount)
 }
 
+// updateStats оновлює статистику.
+func (s *ApartmentsScreen) updateStats() {
+	s.statsLabel.SetText(s.getStatsText())
+}
+
 // loadApartments завантажує список квартир.
 func (s *ApartmentsScreen) loadApartments() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -332,9 +321,7 @@ func (s *ApartmentsScreen) applyFilters() {
 	}
 
 	s.apartmentsTable.Refresh()
-	if s.updateStats != nil {
-		s.updateStats()
-	}
+	s.updateStats()
 }
 
 // showApartmentDetails показує детальну інформацію про квартиру.

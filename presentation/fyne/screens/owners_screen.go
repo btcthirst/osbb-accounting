@@ -8,7 +8,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -29,11 +28,11 @@ type OwnersScreen struct {
 	ownersTable   *widget.Table
 	createButton  *widget.Button
 	refreshButton *widget.Button
+	statsLabel    *widget.Label
 
 	// Дані
 	owners         []*owner.OwnerOutput
 	filteredOwners []*owner.OwnerOutput
-	updateStats    func()
 	currentPage    int
 	pageSize       int
 	totalCount     int64
@@ -62,14 +61,12 @@ func NewOwnersScreen(
 // buildUI створює інтерфейс екрану.
 func (s *OwnersScreen) buildUI() {
 	// Пошук
-	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("🔍 Пошук за ПІБ, телефоном, email...")
-	s.searchEntry.OnChanged = func(query string) {
+	s.searchEntry = newSearchEntry("🔍 Пошук за ПІБ, телефоном, email...", func(query string) {
 		s.applyFilters()
-	}
+	})
 
 	// Фільтр
-	s.filterSelect = widget.NewSelect([]string{
+	s.filterSelect = newFilterSelect([]string{
 		"Всі власники",
 		"Тільки з ІПН",
 		"Без ІПН",
@@ -82,15 +79,16 @@ func (s *OwnersScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = widget.NewButtonWithIcon("Додати власника", theme.ContentAddIcon(), func() {
+	s.createButton = newCreateButton("Додати власника", func() {
 		s.showCreateDialog()
 	})
-	s.createButton.Importance = widget.HighImportance
 
-	// Кнопка оновлення
-	s.refreshButton = widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	s.refreshButton = newRefreshButton(func() {
 		s.loadOwners()
 	})
+
+	// Статистика
+	s.statsLabel = widget.NewLabel("")
 
 	// Таблиця
 	s.buildTable()
@@ -201,16 +199,10 @@ func (s *OwnersScreen) Render() fyne.CanvasObject {
 		),
 	)
 
-	// Статистика
-	statsLabel := widget.NewLabel(s.getStatsText())
-	s.updateStats = func() {
-		statsLabel.SetText(s.getStatsText())
-	}
-
 	// Головний контейнер
 	content := container.NewBorder(
 		toolbar,
-		statsLabel,
+		s.statsLabel,
 		nil,
 		nil,
 		s.ownersTable,
@@ -219,12 +211,14 @@ func (s *OwnersScreen) Render() fyne.CanvasObject {
 	return content
 }
 
-// updateStats - функція для оновлення статистики
-var updateStats func()
-
 // getStatsText повертає текст статистики.
 func (s *OwnersScreen) getStatsText() string {
 	return fmt.Sprintf("Показано: %d з %d власників", len(s.filteredOwners), s.totalCount)
+}
+
+// updateStats оновлює статистику.
+func (s *OwnersScreen) updateStats() {
+	s.statsLabel.SetText(s.getStatsText())
 }
 
 // loadOwners завантажує список власників.
@@ -314,9 +308,7 @@ func (s *OwnersScreen) applyFilters() {
 	}
 
 	s.ownersTable.Refresh()
-	if updateStats != nil {
-		updateStats()
-	}
+	s.updateStats()
 }
 
 // showOwnerDetails показує детальну інформацію про власника.

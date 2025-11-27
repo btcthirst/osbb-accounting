@@ -8,7 +8,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -27,14 +26,12 @@ type OwnershipSharesScreen struct {
 	authManager      *auth.AuthManager
 
 	// UI елементи
-	searchEntry     *widget.Entry
-	filterSelect    *widget.Select
-	apartmentFilter *widget.Entry
-	ownerFilter     *widget.Entry
-	sharesTable     *widget.Table
-	createButton    *widget.Button
-	refreshButton   *widget.Button
-	statsLabel      *widget.Label
+	searchEntry   *widget.Entry
+	filterSelect  *widget.Select
+	sharesTable   *widget.Table
+	createButton  *widget.Button
+	refreshButton *widget.Button
+	statsLabel    *widget.Label
 
 	// Дані
 	shares         []*ownership.OwnershipShareDetailsOutput
@@ -90,28 +87,12 @@ func (s *OwnershipSharesScreen) buildUI() {
 		s.applyFilters()
 	})
 
-	// Фільтр за квартирою
-	s.apartmentFilter = widget.NewEntry()
-	s.apartmentFilter.SetPlaceHolder("Квартира №")
-	s.apartmentFilter.OnChanged = func(query string) {
-		s.applyFilters()
-	}
-
-	// Фільтр за власником
-	s.ownerFilter = widget.NewEntry()
-	s.ownerFilter.SetPlaceHolder("ПІБ власника")
-	s.ownerFilter.OnChanged = func(query string) {
-		s.applyFilters()
-	}
-
 	// Кнопка створення
-	s.createButton = widget.NewButtonWithIcon("Додати частку", theme.ContentAddIcon(), func() {
+	s.createButton = newCreateButton("Додати частку", func() {
 		s.showCreateDialog()
 	})
-	s.createButton.Importance = widget.HighImportance
 
-	// Кнопка оновлення
-	s.refreshButton = widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	s.refreshButton = newRefreshButton(func() {
 		s.loadShares()
 	})
 
@@ -215,18 +196,9 @@ func (s *OwnershipSharesScreen) buildTable() {
 
 // Render повертає контейнер з UI екрану.
 func (s *OwnershipSharesScreen) Render() fyne.CanvasObject {
-	// Панель фільтрів
-	filtersRow1 := container.NewGridWithColumns(2,
-		s.searchEntry,
-		s.filterSelect,
-	)
 
-	filtersRow2 := container.NewGridWithColumns(2,
-		s.apartmentFilter,
-		s.ownerFilter,
-	)
-
-	filters := container.NewVBox(filtersRow1, filtersRow2)
+	filters := container.NewVBox(s.searchEntry,
+		s.filterSelect)
 
 	// Toolbar
 	toolbar := container.NewBorder(
@@ -277,8 +249,6 @@ func (s *OwnershipSharesScreen) applyFilters() {
 
 	searchQuery := s.searchEntry.Text
 	filterType := s.filterSelect.Selected
-	apartmentQuery := s.apartmentFilter.Text
-	ownerQuery := s.ownerFilter.Text
 
 	for _, share := range s.shares {
 		// Фільтр за типом
@@ -315,20 +285,6 @@ func (s *OwnershipSharesScreen) applyFilters() {
 				match = true
 			}
 			if !match {
-				continue
-			}
-		}
-
-		// Пошук за квартирою
-		if apartmentQuery != "" {
-			if !contains(share.ApartmentNumber, apartmentQuery) {
-				continue
-			}
-		}
-
-		// Пошук за власником
-		if ownerQuery != "" {
-			if !contains(share.OwnerName, ownerQuery) {
 				continue
 			}
 		}

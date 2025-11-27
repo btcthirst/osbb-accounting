@@ -7,7 +7,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -30,11 +29,13 @@ type ChargesScreen struct {
 	chargesTable  *widget.Table
 	createButton  *widget.Button
 	refreshButton *widget.Button
+	statsLabel    *widget.Label
 
 	// Дані
 	charges         []*charge.ChargeOutput
 	filteredCharges []*charge.ChargeOutput
-	updateStats     func()
+	currentPage     int
+	pageSize        int
 	totalCount      int64
 }
 
@@ -61,14 +62,12 @@ func NewChargesScreen(
 // buildUI створює інтерфейс екрану.
 func (s *ChargesScreen) buildUI() {
 	// Пошук
-	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("🔍 Пошук за описом...")
-	s.searchEntry.OnChanged = func(query string) {
+	s.searchEntry = newSearchEntry("🔍 Пошук за описом...", func(query string) {
 		s.applyFilters()
-	}
+	})
 
 	// Фільтр
-	s.filterSelect = widget.NewSelect([]string{
+	s.filterSelect = newFilterSelect([]string{
 		"Всі нарахування",
 		"Поточний місяць",
 		"Минулий місяць",
@@ -82,18 +81,18 @@ func (s *ChargesScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = widget.NewButtonWithIcon("Додати нарахування", theme.ContentAddIcon(), func() {
+	s.createButton = newCreateButton("Додати нарахування", func() {
 		s.showCreateDialog()
 	})
-	s.createButton.Importance = widget.HighImportance
 
-	// Кнопка оновлення
-	s.refreshButton = widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	s.refreshButton = newRefreshButton(func() {
 		s.loadCharges()
 	})
 
 	// Таблиця
 	s.buildTable()
+
+	s.statsLabel = widget.NewLabel("")
 
 	s.filterSelect.SetSelected("Всі нарахування")
 }
@@ -190,16 +189,10 @@ func (s *ChargesScreen) Render() fyne.CanvasObject {
 		),
 	)
 
-	// Статистика
-	statsLabel := widget.NewLabel(s.getStatsText())
-	s.updateStats = func() {
-		statsLabel.SetText(s.getStatsText())
-	}
-
 	// Головний контейнер
 	content := container.NewBorder(
 		toolbar,
-		statsLabel,
+		s.statsLabel,
 		nil,
 		nil,
 		s.chargesTable,
@@ -210,11 +203,16 @@ func (s *ChargesScreen) Render() fyne.CanvasObject {
 
 // getStatsText повертає текст статистики.
 func (s *ChargesScreen) getStatsText() string {
-	var totalAmount float64
+	totalAmount := 0.0
 	for _, c := range s.filteredCharges {
 		totalAmount += c.Amount
 	}
-	return fmt.Sprintf("Показано: %d нарахувань на суму %.2f грн", len(s.filteredCharges), totalAmount)
+	return fmt.Sprintf("Показано: %d з %d нарахувань | Загальна сума: %.2f грн", len(s.filteredCharges), s.totalCount, totalAmount)
+}
+
+// updateStats оновлює статистику.
+func (s *ChargesScreen) updateStats() {
+	s.statsLabel.SetText(s.getStatsText())
 }
 
 // loadCharges завантажує список нарахувань.
@@ -297,9 +295,7 @@ func (s *ChargesScreen) applyFilters() {
 	}
 
 	s.chargesTable.Refresh()
-	if s.updateStats != nil {
-		s.updateStats()
-	}
+	s.updateStats()
 }
 
 // showChargeDetails показує детальну інформацію про нарахування.

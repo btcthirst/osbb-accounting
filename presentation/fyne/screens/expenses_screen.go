@@ -7,7 +7,6 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
@@ -25,14 +24,19 @@ type ExpensesScreen struct {
 	}
 
 	// UI
-	content *fyne.Container
-	table   *widget.Table
+	createButton  *widget.Button
+	refreshButton *widget.Button
+	statsLabel    *widget.Label
+	table         *widget.Table
+	searchEntry   *widget.Entry
+	filterSelect  *widget.Select
 
 	// Data
-	expenses []*expense.ExpenseOutput
-
-	// Filters
-	searchEntry *widget.Entry
+	expenses         []*expense.ExpenseOutput
+	filteredExpenses []*expense.ExpenseOutput
+	currentPage      int
+	pageSize         int
+	totalCount       int64
 }
 
 // NewExpensesScreen створює новий екран
@@ -47,6 +51,7 @@ func NewExpensesScreen(
 	s := &ExpensesScreen{
 		window:         window,
 		expenseService: expenseService,
+		currentPage:    0,
 		authManager:    authManager,
 	}
 	s.buildUI()
@@ -55,19 +60,19 @@ func NewExpensesScreen(
 
 func (s *ExpensesScreen) buildUI() {
 	// Buttons
-	createButton := widget.NewButtonWithIcon("Додати витрату", theme.ContentAddIcon(), func() {
+	s.createButton = newCreateButton("Додати витрату", func() {
 		s.showExpenseDialog(nil)
 	})
-	createButton.Importance = widget.HighImportance
 
-	refreshButton := widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	s.refreshButton = newRefreshButton(func() {
 		s.loadExpenses()
 	})
 
 	// Filters
-	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("Пошук...")
-	s.searchEntry.OnSubmitted = func(_ string) { s.loadExpenses() }
+	s.searchEntry = newSearchEntry("Пошук...", func(_ string) { s.applyFilters() })
+	s.filterSelect = newFilterSelect([]string{"Все", "Затверджені", "Не затверджені"}, func(_ string) { s.applyFilters() })
+
+	s.statsLabel = widget.NewLabel("")
 
 	// Table
 	s.table = widget.NewTable(
@@ -140,26 +145,28 @@ func (s *ExpensesScreen) buildUI() {
 		}
 	}
 
-	// Toolbar container
-	toolbar := container.NewBorder(
-		nil, nil,
-		container.NewHBox(createButton, refreshButton),
-		nil,
-		s.searchEntry,
-	)
-
-	// Layout
-	s.content = container.NewBorder(
-		toolbar,
-		nil, nil, nil,
-		s.table,
-	)
+	s.filterSelect.SetSelected("Все")
 
 	s.loadExpenses()
 }
 
 func (s *ExpensesScreen) Render() fyne.CanvasObject {
-	return s.content
+	// Toolbar container
+	toolbar := container.NewBorder(
+		nil, nil,
+		container.NewHBox(s.createButton, s.refreshButton),
+		nil,
+		container.NewVBox(s.searchEntry, s.filterSelect),
+	)
+
+	// Layout
+	content := container.NewBorder(
+		toolbar,
+		s.statsLabel,
+		nil, nil,
+		s.table,
+	)
+	return content
 }
 
 func (s *ExpensesScreen) loadExpenses() {
@@ -177,7 +184,9 @@ func (s *ExpensesScreen) loadExpenses() {
 	}
 
 	s.expenses = output.Expenses
+	s.totalCount = output.Total
 	s.table.Refresh()
+	s.updateStats()
 }
 
 func (s *ExpensesScreen) showExpenseDialog(existing *expense.ExpenseOutput) {
@@ -289,4 +298,34 @@ func (s *ExpensesScreen) unapproveExpense(id int64) {
 	}
 	common.ShowSuccess(s.window, "Затвердження витрати скасовано")
 	s.loadExpenses()
+}
+
+func (s *ExpensesScreen) applyFilters() {
+	s.filteredExpenses = make([]*expense.ExpenseOutput, 0)
+
+	for _, e := range s.expenses {
+		switch s.filterSelect.Selected {
+		case "Все":
+			s.filteredExpenses = append(s.filteredExpenses, e)
+		case "Затверджені":
+			if e.IsApproved {
+				s.filteredExpenses = append(s.filteredExpenses, e)
+			}
+		case "Не затверджені":
+			if !e.IsApproved {
+				s.filteredExpenses = append(s.filteredExpenses, e)
+			}
+		}
+	}
+	s.table.Refresh()
+	s.updateStats()
+}
+
+func (s *ExpensesScreen) getStatsText() string {
+	return fmt.Sprintf("Показано:%d з %d витрат", len(s.filteredExpenses), s.totalCount)
+}
+
+// updateStats оновлює статистику.
+func (s *ExpensesScreen) updateStats() {
+	s.statsLabel.SetText(s.getStatsText())
 }
