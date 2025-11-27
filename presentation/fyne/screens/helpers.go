@@ -151,3 +151,37 @@ func buildStandardActions(onEdit func(), onDelete func(), onDetails func()) []co
 
 	return actions
 }
+
+// ============================================================================
+// Logic Helper Functions
+// ============================================================================
+
+// FilterList фільтрує список елементів за пошуковим запитом та критерієм фільтрації.
+// T - тип елемента списку (зазвичай вказівник на структуру).
+func FilterList[T any](
+	items []T,
+	searchQuery string,
+	filterValue string,
+	matchesSearch func(item T, query string) bool,
+	matchesFilter func(item T, filter string) bool,
+) []T {
+	filtered := make([]T, 0)
+	for _, item := range items {
+		// 1. Пошук
+		if searchQuery != "" && matchesSearch != nil {
+			if !matchesSearch(item, searchQuery) {
+				continue
+			}
+		}
+
+		// 2. Фільтр
+		if filterValue != "" && matchesFilter != nil {
+			if !matchesFilter(item, filterValue) {
+				continue
+			}
+		}
+
+		filtered = append(filtered, item)
+	}
+	return filtered
+}

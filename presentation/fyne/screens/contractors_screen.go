@@ -39,6 +39,14 @@ type ContractorsScreen struct {
 	totalCount          int64
 }
 
+type ContractorFilterType string
+
+const (
+	ContractorFilterAll      ContractorFilterType = "Всі контрагенти"
+	ContractorFilterActive   ContractorFilterType = "Активні"
+	ContractorFilterInactive ContractorFilterType = "Неактивні"
+)
+
 // NewContractorsScreen створює новий екран
 func NewContractorsScreen(
 	window fyne.Window,
@@ -71,13 +79,13 @@ func (s *ContractorsScreen) buildUI() {
 	s.statsLabel = widget.NewLabel("")
 
 	// Filters
-	s.searchEntry = newSearchEntry("Пошук (Назва, ЄДРПОУ)...", func(_ string) { s.loadContractors() })
-	s.filterSelect = newFilterSelect([]string{"Всі контрагенти", "Активні", "Неактивні"}, func(value string) { s.applyFilters() })
+	s.searchEntry = newSearchEntry("Пошук (Назва, ЄДРПОУ)...", func(_ string) { s.applyFilters() })
+	s.filterSelect = newFilterSelect([]string{string(ContractorFilterAll), string(ContractorFilterActive), string(ContractorFilterInactive)}, func(value string) { s.applyFilters() })
 
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.contractors) + 1, 6 // +1 for header
+			return len(s.filteredContractors) + 1, 6 // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -94,7 +102,7 @@ func (s *ContractorsScreen) buildUI() {
 			}
 
 			// Data
-			if id.Row-1 >= len(s.contractors) {
+			if id.Row-1 >= len(s.filteredContractors) {
 				label.SetText("")
 				return
 			}
@@ -139,8 +147,8 @@ func (s *ContractorsScreen) buildUI() {
 			s.showActionsMenu(id.Row - 1)
 		}
 	}
-
 	s.loadContractors()
+	s.filterSelect.SetSelected(string(ContractorFilterAll))
 }
 
 func (s *ContractorsScreen) Render() fyne.CanvasObject {
@@ -164,8 +172,8 @@ func (s *ContractorsScreen) loadContractors() {
 
 	s.contractors = output.Contractors
 	s.totalCount = output.Total
-	s.table.Refresh()
-	s.updateStats()
+
+	s.applyFilters()
 }
 
 func (s *ContractorsScreen) applyFilters() {
@@ -181,26 +189,27 @@ func (s *ContractorsScreen) applyFilters() {
 	}
 
 	// Фільтрація
-	for _, c := range s.contractors {
-		if !strings.Contains(strings.ToLower(c.Name), strings.ToLower(searchQuery)) {
-			continue
-		}
-		if filterType != "" && filterType != c.TypeDisplayName {
-			continue
-		}
-
-		switch filterType {
-		case "Активні":
-			if !c.IsActive {
-				continue
+	s.filteredContractors = FilterList(
+		s.contractors,
+		searchQuery,
+		filterType,
+		func(c *contractor.ContractorOutput, query string) bool {
+			return strings.Contains(strings.ToLower(c.Name), strings.ToLower(query))
+		},
+		func(c *contractor.ContractorOutput, filter string) bool {
+			switch ContractorFilterType(filter) {
+			case ContractorFilterActive:
+				return c.IsActive
+			case ContractorFilterInactive:
+				return !c.IsActive
+			case ContractorFilterAll:
+				return true
+			default:
+				// Якщо це не статус, то це тип контрагента
+				return filter == "" || filter == c.TypeDisplayName
 			}
-		case "Неактивні":
-			if c.IsActive {
-				continue
-			}
-		}
-		s.filteredContractors = append(s.filteredContractors, c)
-	}
+		},
+	)
 	s.table.Refresh()
 	s.updateStats()
 }
@@ -265,7 +274,7 @@ func (s *ContractorsScreen) deleteContractor(id int64) {
 }
 
 func (s *ContractorsScreen) getStatsText() string {
-	return fmt.Sprintf("Показано: %d з %d контрагентів", len(s.contractors), s.totalCount)
+	return fmt.Sprintf("Показано: %d з %d контрагентів", len(s.filteredContractors), s.totalCount)
 }
 
 // updateStats оновлює статистику.

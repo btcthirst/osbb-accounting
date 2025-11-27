@@ -38,6 +38,18 @@ type OwnersScreen struct {
 	totalCount     int64
 }
 
+type OwnerFilterType string
+
+const (
+	OwnerFilterAll          OwnerFilterType = "Всі власники"
+	OwnerFilterWithTax      OwnerFilterType = "Тільки з ІПН"
+	OwnerFilterNoTax        OwnerFilterType = "Без ІПН"
+	OwnerFilterWithContacts OwnerFilterType = "Тільки з контактами"
+	OwnerFilterNoContacts   OwnerFilterType = "Без контактів"
+	OwnerFilterActive       OwnerFilterType = "Тільки активні"
+	OwnerFilterInactive     OwnerFilterType = "Неактивні"
+)
+
 // NewOwnersScreen створює новий екран власників.
 func NewOwnersScreen(
 	window fyne.Window,
@@ -66,14 +78,15 @@ func (s *OwnersScreen) buildUI() {
 	})
 
 	// Фільтр
+	// Фільтр
 	s.filterSelect = newFilterSelect([]string{
-		"Всі власники",
-		"Тільки з ІПН",
-		"Без ІПН",
-		"Тільки з контактами",
-		"Без контактів",
-		"Тільки активні",
-		"Неактивні",
+		string(OwnerFilterAll),
+		string(OwnerFilterWithTax),
+		string(OwnerFilterNoTax),
+		string(OwnerFilterWithContacts),
+		string(OwnerFilterNoContacts),
+		string(OwnerFilterActive),
+		string(OwnerFilterInactive),
 	}, func(value string) {
 		s.applyFilters()
 	})
@@ -94,7 +107,8 @@ func (s *OwnersScreen) buildUI() {
 	s.buildTable()
 
 	// Перенесено вниз щоб уникнути nil pointer
-	s.filterSelect.SetSelected("Всі власники")
+	s.filterSelect.SetSelected(string(OwnerFilterAll))
+	s.loadOwners()
 }
 
 // buildTable створює таблицю з власниками.
@@ -251,62 +265,34 @@ func (s *OwnersScreen) applyFilters() {
 	searchQuery := s.searchEntry.Text
 	filterType := s.filterSelect.Selected
 
-	for _, o := range s.owners {
-		// Пошук
-		if searchQuery != "" {
-			match := false
-			// Пошук в ПІБ
-			if contains(o.FullName, searchQuery) {
-				match = true
+	s.filteredOwners = FilterList(
+		s.owners,
+		searchQuery,
+		filterType,
+		func(o *owner.OwnerOutput, query string) bool {
+			return contains(o.FullName, query) ||
+				(o.Phone != nil && contains(*o.Phone, query)) ||
+				(o.Email != nil && contains(*o.Email, query)) ||
+				(o.TaxNumber != nil && contains(*o.TaxNumber, query))
+		},
+		func(o *owner.OwnerOutput, filter string) bool {
+			switch OwnerFilterType(filter) {
+			case OwnerFilterWithTax:
+				return o.TaxNumber != nil && *o.TaxNumber != ""
+			case OwnerFilterNoTax:
+				return o.TaxNumber == nil || *o.TaxNumber == ""
+			case OwnerFilterWithContacts:
+				return (o.Phone != nil && *o.Phone != "") || (o.Email != nil && *o.Email != "")
+			case OwnerFilterNoContacts:
+				return (o.Phone == nil || *o.Phone == "") && (o.Email == nil || *o.Email == "")
+			case OwnerFilterActive:
+				return o.IsActive
+			case OwnerFilterInactive:
+				return !o.IsActive
 			}
-			// Пошук в телефоні
-			if o.Phone != nil && contains(*o.Phone, searchQuery) {
-				match = true
-			}
-			// Пошук в email
-			if o.Email != nil && contains(*o.Email, searchQuery) {
-				match = true
-			}
-			// Пошук в ІПН
-			if o.TaxNumber != nil && contains(*o.TaxNumber, searchQuery) {
-				match = true
-			}
-
-			if !match {
-				continue
-			}
-		}
-
-		// Фільтр
-		switch filterType {
-		case "Тільки з ІПН":
-			if o.TaxNumber == nil || *o.TaxNumber == "" {
-				continue
-			}
-		case "Без ІПН":
-			if o.TaxNumber != nil && *o.TaxNumber != "" {
-				continue
-			}
-		case "Тільки з контактами":
-			if (o.Phone == nil || *o.Phone == "") && (o.Email == nil || *o.Email == "") {
-				continue
-			}
-		case "Без контактів":
-			if (o.Phone != nil && *o.Phone != "") || (o.Email != nil && *o.Email != "") {
-				continue
-			}
-		case "Тільки активні":
-			if !o.IsActive {
-				continue
-			}
-		case "Неактивні":
-			if o.IsActive {
-				continue
-			}
-		}
-
-		s.filteredOwners = append(s.filteredOwners, o)
-	}
+			return true
+		},
+	)
 
 	s.ownersTable.Refresh()
 	s.updateStats()

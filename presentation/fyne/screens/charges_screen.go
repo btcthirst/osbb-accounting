@@ -39,6 +39,19 @@ type ChargesScreen struct {
 	totalCount      int64
 }
 
+type ChargeFilterType string
+
+const (
+	ChargeFilterAll         ChargeFilterType = "Всі нарахування"
+	ChargeFilterCurrent     ChargeFilterType = "Поточний місяць"
+	ChargeFilterPrevious    ChargeFilterType = "Минулий місяць"
+	ChargeFilterMaintenance ChargeFilterType = "Утримання"
+	ChargeFilterUtility     ChargeFilterType = "Комунальні"
+	ChargeFilterRepair      ChargeFilterType = "Ремонт"
+	ChargeFilterPenalty     ChargeFilterType = "Пеня"
+	ChargeFilterOther       ChargeFilterType = "Інше"
+)
+
 // NewChargesScreen створює новий екран нарахувань.
 func NewChargesScreen(
 	window fyne.Window,
@@ -67,15 +80,16 @@ func (s *ChargesScreen) buildUI() {
 	})
 
 	// Фільтр
+	// Фільтр
 	s.filterSelect = newFilterSelect([]string{
-		"Всі нарахування",
-		"Поточний місяць",
-		"Минулий місяць",
-		"Утримання",
-		"Комунальні",
-		"Ремонт",
-		"Пеня",
-		"Інше",
+		string(ChargeFilterAll),
+		string(ChargeFilterCurrent),
+		string(ChargeFilterPrevious),
+		string(ChargeFilterMaintenance),
+		string(ChargeFilterUtility),
+		string(ChargeFilterRepair),
+		string(ChargeFilterPenalty),
+		string(ChargeFilterOther),
 	}, func(value string) {
 		s.applyFilters()
 	})
@@ -93,8 +107,8 @@ func (s *ChargesScreen) buildUI() {
 	s.buildTable()
 
 	s.statsLabel = widget.NewLabel("")
-
-	s.filterSelect.SetSelected("Всі нарахування")
+	s.filterSelect.SetSelected(string(ChargeFilterAll))
+	s.loadCharges()
 }
 
 // buildTable створює таблицю з нарахуваннями.
@@ -246,54 +260,34 @@ func (s *ChargesScreen) applyFilters() {
 	filterType := s.filterSelect.Selected
 	now := time.Now()
 
-	for _, c := range s.charges {
-		// Пошук
-		if searchQuery != "" {
-			match := false
-			if c.Description != nil && contains(*c.Description, searchQuery) {
-				match = true
+	s.filteredCharges = FilterList(
+		s.charges,
+		searchQuery,
+		filterType,
+		func(c *charge.ChargeOutput, query string) bool {
+			return c.Description != nil && contains(*c.Description, query)
+		},
+		func(c *charge.ChargeOutput, filter string) bool {
+			switch ChargeFilterType(filter) {
+			case ChargeFilterCurrent:
+				return c.PeriodMonth == int(now.Month()) && c.PeriodYear == now.Year()
+			case ChargeFilterPrevious:
+				prevMonth := now.AddDate(0, -1, 0)
+				return c.PeriodMonth == int(prevMonth.Month()) && c.PeriodYear == prevMonth.Year()
+			case ChargeFilterMaintenance:
+				return c.ChargeType == string(entity.ChargeTypeMaintenance)
+			case ChargeFilterUtility:
+				return c.ChargeType == string(entity.ChargeTypeUtility)
+			case ChargeFilterRepair:
+				return c.ChargeType == string(entity.ChargeTypeRepair)
+			case ChargeFilterPenalty:
+				return c.ChargeType == string(entity.ChargeTypePenalty)
+			case ChargeFilterOther:
+				return c.ChargeType == string(entity.ChargeTypeOther)
 			}
-			// Можна додати пошук по сумі або типу
-			if !match {
-				continue
-			}
-		}
-
-		// Фільтр
-		switch filterType {
-		case "Поточний місяць":
-			if c.PeriodMonth != int(now.Month()) || c.PeriodYear != now.Year() {
-				continue
-			}
-		case "Минулий місяць":
-			prevMonth := now.AddDate(0, -1, 0)
-			if c.PeriodMonth != int(prevMonth.Month()) || c.PeriodYear != prevMonth.Year() {
-				continue
-			}
-		case "Утримання":
-			if c.ChargeType != string(entity.ChargeTypeMaintenance) {
-				continue
-			}
-		case "Комунальні":
-			if c.ChargeType != string(entity.ChargeTypeUtility) {
-				continue
-			}
-		case "Ремонт":
-			if c.ChargeType != string(entity.ChargeTypeRepair) {
-				continue
-			}
-		case "Пеня":
-			if c.ChargeType != string(entity.ChargeTypePenalty) {
-				continue
-			}
-		case "Інше":
-			if c.ChargeType != string(entity.ChargeTypeOther) {
-				continue
-			}
-		}
-
-		s.filteredCharges = append(s.filteredCharges, c)
-	}
+			return true
+		},
+	)
 
 	s.chargesTable.Refresh()
 	s.updateStats()

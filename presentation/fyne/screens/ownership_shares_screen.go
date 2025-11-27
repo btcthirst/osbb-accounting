@@ -41,6 +41,17 @@ type OwnershipSharesScreen struct {
 	totalCount     int64
 }
 
+type OwnershipShareFilterType string
+
+const (
+	OwnershipShareFilterAll      OwnershipShareFilterType = "Всі частки"
+	OwnershipShareFilterActive   OwnershipShareFilterType = "Тільки активні зараз"
+	OwnershipShareFilterFull     OwnershipShareFilterType = "Повна власність"
+	OwnershipShareFilterShared   OwnershipShareFilterType = "Часткова власність"
+	OwnershipShareFilterRent     OwnershipShareFilterType = "Оренда"
+	OwnershipShareFilterFinished OwnershipShareFilterType = "Завершені"
+)
+
 // NewOwnershipSharesScreen створює новий екран часток власності.
 func NewOwnershipSharesScreen(
 	window fyne.Window,
@@ -76,13 +87,13 @@ func (s *OwnershipSharesScreen) buildUI() {
 	}
 
 	// Фільтр за типом
-	s.filterSelect = widget.NewSelect([]string{
-		"Всі частки",
-		"Тільки активні зараз",
-		"Повна власність",
-		"Часткова власність",
-		"Оренда",
-		"Завершені",
+	s.filterSelect = newFilterSelect([]string{
+		string(OwnershipShareFilterAll),
+		string(OwnershipShareFilterActive),
+		string(OwnershipShareFilterFull),
+		string(OwnershipShareFilterShared),
+		string(OwnershipShareFilterRent),
+		string(OwnershipShareFilterFinished),
 	}, func(value string) {
 		s.applyFilters()
 	})
@@ -104,7 +115,8 @@ func (s *OwnershipSharesScreen) buildUI() {
 
 	// 2. Встановлюємо дефолтні значення, які можуть тригерити колбеки
 	// Робимо це в самому кінці, коли всі поля (searchEntry, apartmentFilter, ownerFilter) вже існують
-	s.filterSelect.SetSelected("Тільки активні зараз")
+	s.filterSelect.SetSelected(string(OwnershipShareFilterAll))
+	s.loadShares()
 }
 
 // buildTable створює таблицю з частками власності.
@@ -251,47 +263,29 @@ func (s *OwnershipSharesScreen) applyFilters() {
 	searchQuery := s.searchEntry.Text
 	filterType := s.filterSelect.Selected
 
-	for _, share := range s.shares {
-		// Фільтр за типом
-		switch filterType {
-		case "Тільки активні зараз":
-			if !share.IsCurrentlyActive {
-				continue
+	s.filteredShares = FilterList(
+		s.shares,
+		searchQuery,
+		filterType,
+		func(share *ownership.OwnershipShareDetailsOutput, query string) bool {
+			return contains(share.OwnerName, query) || contains(share.ApartmentNumber, query)
+		},
+		func(share *ownership.OwnershipShareDetailsOutput, filter string) bool {
+			switch OwnershipShareFilterType(filter) {
+			case OwnershipShareFilterActive:
+				return share.IsCurrentlyActive
+			case OwnershipShareFilterFull:
+				return share.OwnershipType == entity.OwnershipTypeFull
+			case OwnershipShareFilterShared:
+				return share.OwnershipType == entity.OwnershipTypeShared
+			case OwnershipShareFilterRent:
+				return share.OwnershipType == entity.OwnershipTypeRent
+			case OwnershipShareFilterFinished:
+				return !share.IsCurrentlyActive
 			}
-		case "Повна власність":
-			if share.OwnershipType != entity.OwnershipTypeFull {
-				continue
-			}
-		case "Часткова власність":
-			if share.OwnershipType != entity.OwnershipTypeShared {
-				continue
-			}
-		case "Оренда":
-			if share.OwnershipType != entity.OwnershipTypeRent {
-				continue
-			}
-		case "Завершені":
-			if share.IsCurrentlyActive {
-				continue
-			}
-		}
-
-		// Загальний пошук
-		if searchQuery != "" {
-			match := false
-			if contains(share.OwnerName, searchQuery) {
-				match = true
-			}
-			if contains(share.ApartmentNumber, searchQuery) {
-				match = true
-			}
-			if !match {
-				continue
-			}
-		}
-
-		s.filteredShares = append(s.filteredShares, share)
-	}
+			return true
+		},
+	)
 
 	s.sharesTable.Refresh()
 	s.updateStats()

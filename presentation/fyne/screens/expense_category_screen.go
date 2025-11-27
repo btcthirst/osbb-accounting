@@ -38,6 +38,14 @@ type ExpenseCategoryScreen struct {
 	totalCount         int64
 }
 
+type ExpenseCategoryFilterType string
+
+const (
+	ExpenseCategoryFilterAll      ExpenseCategoryFilterType = "Всі категорії"
+	ExpenseCategoryFilterActive   ExpenseCategoryFilterType = "Активні"
+	ExpenseCategoryFilterInactive ExpenseCategoryFilterType = "Неактивні"
+)
+
 // NewExpenseCategoryScreen створює новий екран
 func NewExpenseCategoryScreen(
 	window fyne.Window,
@@ -68,13 +76,13 @@ func (s *ExpenseCategoryScreen) buildUI() {
 
 	// Filters
 	s.searchEntry = newSearchEntry("Пошук (Назва)...", func(_ string) { s.applyFilters() })
-	s.filterSelect = newFilterSelect([]string{"Всі", "Активні", "Неактивні"}, func(_ string) { s.applyFilters() })
+	s.filterSelect = newFilterSelect([]string{string(ExpenseCategoryFilterAll), string(ExpenseCategoryFilterActive), string(ExpenseCategoryFilterInactive)}, func(_ string) { s.applyFilters() })
 
 	s.statsLabel = widget.NewLabel("")
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.categories) + 1, 5 // +1 for header
+			return len(s.filteredCategories) + 1, 5 // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -90,11 +98,11 @@ func (s *ExpenseCategoryScreen) buildUI() {
 			}
 
 			// Data
-			if id.Row-1 >= len(s.categories) {
+			if id.Row-1 >= len(s.filteredCategories) {
 				label.SetText("")
 				return
 			}
-			c := s.categories[id.Row-1]
+			c := s.filteredCategories[id.Row-1]
 
 			// Reset style
 			label.TextStyle = fyne.TextStyle{}
@@ -133,7 +141,7 @@ func (s *ExpenseCategoryScreen) buildUI() {
 		}
 	}
 
-	s.filterSelect.SetSelectedIndex(0)
+	s.filterSelect.SetSelected(string(ExpenseCategoryFilterAll))
 	s.loadCategories()
 }
 
@@ -158,8 +166,7 @@ func (s *ExpenseCategoryScreen) loadCategories() {
 
 	s.categories = output.Categories
 	s.totalCount = output.Total
-	s.table.Refresh()
-	s.updateStats()
+	s.applyFilters()
 }
 
 func (s *ExpenseCategoryScreen) showCategoryDialog(existing *expense_category.ExpenseCategoryOutput) {
@@ -213,27 +220,36 @@ func (s *ExpenseCategoryScreen) deleteCategory(id int64) {
 func (s *ExpenseCategoryScreen) applyFilters() {
 
 	s.filteredCategories = make([]*expense_category.ExpenseCategoryOutput, 0)
-	for _, c := range s.categories {
-
-		switch s.filterSelect.Selected {
-		case "Всі":
-			s.filteredCategories = append(s.filteredCategories, c)
-		case "Активні":
-			if c.IsActive {
-				s.filteredCategories = append(s.filteredCategories, c)
-			}
-		case "Неактивні":
-			if !c.IsActive {
-				s.filteredCategories = append(s.filteredCategories, c)
-			}
-		}
+	searchQuery := ""
+	if s.searchEntry != nil {
+		searchQuery = s.searchEntry.Text
 	}
+
+	s.filteredCategories = FilterList(
+		s.categories,
+		searchQuery,
+		s.filterSelect.Selected,
+		func(c *expense_category.ExpenseCategoryOutput, query string) bool {
+			return contains(c.Name, query)
+		},
+		func(c *expense_category.ExpenseCategoryOutput, filter string) bool {
+			switch ExpenseCategoryFilterType(filter) {
+			case ExpenseCategoryFilterAll:
+				return true
+			case ExpenseCategoryFilterActive:
+				return c.IsActive
+			case ExpenseCategoryFilterInactive:
+				return !c.IsActive
+			}
+			return true
+		},
+	)
 	s.table.Refresh()
 	s.updateStats()
 }
 
 func (s *ExpenseCategoryScreen) getStatsText() string {
-	return fmt.Sprintf("Показано: %d з %d категорій", len(s.categories), s.totalCount)
+	return fmt.Sprintf("Показано: %d з %d категорій", len(s.filteredCategories), s.totalCount)
 }
 
 // updateStats оновлює статистику.

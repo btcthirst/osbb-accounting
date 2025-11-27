@@ -38,4 +38,4 @@ go.work.sum
 *.db-wal
 *.db-shm
 
-./main
+main

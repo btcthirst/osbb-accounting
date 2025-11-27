@@ -38,6 +38,14 @@ type ExpensesScreen struct {
 	totalCount       int64
 }
 
+type ExpenseFilterType string
+
+const (
+	ExpenseFilterAll         ExpenseFilterType = "Всі витрати"
+	ExpenseFilterApproved    ExpenseFilterType = "Затверджені витрати"
+	ExpenseFilterNotApproved ExpenseFilterType = "Не затверджені витрати"
+)
+
 // NewExpensesScreen створює новий екран
 func NewExpensesScreen(
 	window fyne.Window,
@@ -54,6 +62,7 @@ func NewExpensesScreen(
 		authManager:    authManager,
 	}
 	s.buildUI()
+	s.loadExpenses()
 	return s
 }
 
@@ -69,14 +78,16 @@ func (s *ExpensesScreen) buildUI() {
 
 	// Filters
 	s.searchEntry = newSearchEntry("Пошук...", func(_ string) { s.applyFilters() })
-	s.filterSelect = newFilterSelect([]string{"Все", "Затверджені", "Не затверджені"}, func(_ string) { s.applyFilters() })
+	s.filterSelect = newFilterSelect([]string{string(ExpenseFilterAll), string(ExpenseFilterApproved), string(ExpenseFilterNotApproved)}, func(_ string) {
+		s.applyFilters()
+	})
 
 	s.statsLabel = widget.NewLabel("")
 
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.expenses) + 1, 7 // +1 for header
+			return len(s.filteredExpenses) + 1, 7 // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -92,11 +103,11 @@ func (s *ExpensesScreen) buildUI() {
 			}
 
 			// Data
-			if id.Row-1 >= len(s.expenses) {
+			if id.Row-1 >= len(s.filteredExpenses) {
 				label.SetText("")
 				return
 			}
-			e := s.expenses[id.Row-1]
+			e := s.filteredExpenses[id.Row-1]
 
 			// Reset style
 			label.TextStyle = fyne.TextStyle{}
@@ -145,7 +156,7 @@ func (s *ExpensesScreen) buildUI() {
 		}
 	}
 
-	s.filterSelect.SetSelected("Все")
+	s.filterSelect.SetSelected(string(ExpenseFilterAll))
 
 	s.loadExpenses()
 }
@@ -171,8 +182,7 @@ func (s *ExpensesScreen) loadExpenses() {
 
 	s.expenses = output.Expenses
 	s.totalCount = output.Total
-	s.table.Refresh()
-	s.updateStats()
+	s.applyFilters()
 }
 
 func (s *ExpensesScreen) showExpenseDialog(existing *expense.ExpenseOutput) {
@@ -278,20 +288,34 @@ func (s *ExpensesScreen) unapproveExpense(id int64) {
 func (s *ExpensesScreen) applyFilters() {
 	s.filteredExpenses = make([]*expense.ExpenseOutput, 0)
 
-	for _, e := range s.expenses {
-		switch s.filterSelect.Selected {
-		case "Все":
-			s.filteredExpenses = append(s.filteredExpenses, e)
-		case "Затверджені":
-			if e.IsApproved {
-				s.filteredExpenses = append(s.filteredExpenses, e)
-			}
-		case "Не затверджені":
-			if !e.IsApproved {
-				s.filteredExpenses = append(s.filteredExpenses, e)
-			}
-		}
+	searchQuery := ""
+	if s.searchEntry != nil {
+		searchQuery = s.searchEntry.Text
 	}
+	filterType := ExpenseFilterAll
+	if s.filterSelect != nil {
+		filterType = ExpenseFilterType(s.filterSelect.Selected)
+	}
+
+	s.filteredExpenses = FilterList(
+		s.expenses,
+		searchQuery,
+		string(filterType),
+		func(e *expense.ExpenseOutput, query string) bool {
+			return contains(e.CategoryName, query) || contains(fmt.Sprintf("%.2f", e.Amount), query)
+		},
+		func(e *expense.ExpenseOutput, filter string) bool {
+			switch ExpenseFilterType(filter) {
+			case ExpenseFilterAll:
+				return true
+			case ExpenseFilterApproved:
+				return e.IsApproved
+			case ExpenseFilterNotApproved:
+				return !e.IsApproved
+			}
+			return true
+		},
+	)
 	s.table.Refresh()
 	s.updateStats()
 }

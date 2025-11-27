@@ -36,6 +36,20 @@ type ApartmentsScreen struct {
 	totalCount         int64
 }
 
+type ApartmentFilterType string
+
+const (
+	ApartmentFilterAll       ApartmentFilterType = "Всі квартири"
+	ApartmentFilterEntrance1 ApartmentFilterType = "Перший підїзд"
+	ApartmentFilterEntrance2 ApartmentFilterType = "Другий підїзд"
+	ApartmentFilterEntrance3 ApartmentFilterType = "Третій підїзд"
+	ApartmentFilterEntrance4 ApartmentFilterType = "Четвертий підїзд"
+	ApartmentFilterEntrance5 ApartmentFilterType = "П'ятий підїзд"
+	ApartmentFilterEntrance6 ApartmentFilterType = "Шостий підїзд"
+	ApartmentFilterActive    ApartmentFilterType = "Тільки активні"
+	ApartmentFilterInactive  ApartmentFilterType = "Неактивні"
+)
+
 func NewApartmentsScreen(
 	window fyne.Window,
 	apartmentService service.ApartmentServiceInterface,
@@ -57,15 +71,20 @@ func NewApartmentsScreen(
 
 // buildUI створює інтерфейс екрану.
 func (s *ApartmentsScreen) buildUI() {
-	// 1. Спочатку ініціалізуємо всі віджети
-	s.searchEntry = newSearchEntry(
-		"🔍 Пошук за власником, номером...",
-		func(query string) {
-			s.applyFilters()
-		})
-
-	s.filterSelect = newFilterSelect([]string{"Всі квартири", "Перший підїзд", "Другий підїзд", "Третій підїзд", "Четвертий підїзд", "П'ятий підїзд", "Шостий підїзд", "Тільки активні", "Неактивні"},
-		func(value string) {
+	// 1. Спочатку ініціалізуємо всі віджети // Filters
+	s.searchEntry = newSearchEntry("Пошук (ПІБ, Номер, Площа)...", func(_ string) { s.applyFilters() })
+	s.filterSelect = newFilterSelect([]string{
+		string(ApartmentFilterAll),
+		string(ApartmentFilterEntrance1),
+		string(ApartmentFilterEntrance2),
+		string(ApartmentFilterEntrance3),
+		string(ApartmentFilterEntrance4),
+		string(ApartmentFilterEntrance5),
+		string(ApartmentFilterEntrance6),
+		string(ApartmentFilterActive),
+		string(ApartmentFilterInactive),
+	},
+		func(_ string) {
 			s.applyFilters()
 		},
 	)
@@ -84,7 +103,7 @@ func (s *ApartmentsScreen) buildUI() {
 	s.buildTable()
 
 	// 3. Встановлюємо дефолтні значення (викличе applyFilters)
-	s.filterSelect.SetSelected("Всі квартири")
+	s.filterSelect.SetSelected(string(ApartmentFilterAll))
 }
 
 // buildTable створює таблицю з квартирами.
@@ -256,66 +275,37 @@ func (s *ApartmentsScreen) applyFilters() {
 		filterType = s.filterSelect.Selected
 	}
 
-	for _, a := range s.apartments {
-		// Пошук
-		if searchQuery != "" {
-			match := false
-			// Пошук в ПІБ (DisplayName містить номер)
-			if contains(a.DisplayName, searchQuery) {
-				match = true
+	s.filteredApartments = FilterList(
+		s.apartments,
+		searchQuery,
+		filterType,
+		func(a *apartment.ApartmentOutput, query string) bool {
+			return contains(a.DisplayName, query) ||
+				contains(a.ApartmentNumber, query) ||
+				(a.AreaLiving != nil && contains(fmt.Sprintf("%v", *a.AreaLiving), query))
+		},
+		func(a *apartment.ApartmentOutput, filter string) bool {
+			switch ApartmentFilterType(filter) {
+			case ApartmentFilterEntrance1:
+				return a.Entrance != nil && *a.Entrance == 1
+			case ApartmentFilterEntrance2:
+				return a.Entrance != nil && *a.Entrance == 2
+			case ApartmentFilterEntrance3:
+				return a.Entrance != nil && *a.Entrance == 3
+			case ApartmentFilterEntrance4:
+				return a.Entrance != nil && *a.Entrance == 4
+			case ApartmentFilterEntrance5:
+				return a.Entrance != nil && *a.Entrance == 5
+			case ApartmentFilterEntrance6:
+				return a.Entrance != nil && *a.Entrance == 6
+			case ApartmentFilterActive:
+				return a.IsActive
+			case ApartmentFilterInactive:
+				return !a.IsActive
 			}
-			// Пошук в номері
-			if contains(a.ApartmentNumber, searchQuery) {
-				match = true
-			}
-			// Пошук в площі
-			if a.AreaLiving != nil && contains(fmt.Sprintf("%v", *a.AreaLiving), searchQuery) {
-				match = true
-			}
-
-			if !match {
-				continue
-			}
-		}
-
-		// Фільтр
-		switch filterType {
-		case "Перший підїзд":
-			if a.Entrance == nil || *a.Entrance != 1 {
-				continue
-			}
-		case "Другий підїзд":
-			if a.Entrance == nil || *a.Entrance != 2 {
-				continue
-			}
-		case "Третій підїзд":
-			if a.Entrance == nil || *a.Entrance != 3 {
-				continue
-			}
-		case "Четвертий підїзд":
-			if a.Entrance == nil || *a.Entrance != 4 {
-				continue
-			}
-		case "П'ятий підїзд":
-			if a.Entrance == nil || *a.Entrance != 5 {
-				continue
-			}
-		case "Шостий підїзд":
-			if a.Entrance == nil || *a.Entrance != 6 {
-				continue
-			}
-		case "Тільки активні":
-			if !a.IsActive {
-				continue
-			}
-		case "Неактивні":
-			if a.IsActive {
-				continue
-			}
-		}
-
-		s.filteredApartments = append(s.filteredApartments, a)
-	}
+			return true
+		},
+	)
 
 	s.apartmentsTable.Refresh()
 	s.updateStats()

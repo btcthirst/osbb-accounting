@@ -41,6 +41,16 @@ type PaymentsScreen struct {
 	totalCount       int64
 }
 
+type PaymentFilterType string
+
+const (
+	PaymentFilterAll         PaymentFilterType = "Всі платежі"
+	PaymentFilterCurrent     PaymentFilterType = "Поточний місяць"
+	PaymentFilterPrevious    PaymentFilterType = "Минулий місяць"
+	PaymentFilterNotApproved PaymentFilterType = "Непідтверджені платежі"
+	PaymentFilterApproved    PaymentFilterType = "Підтверджені платежі"
+)
+
 // NewPaymentsScreen створює новий екран
 func NewPaymentsScreen(
 	window fyne.Window,
@@ -74,7 +84,7 @@ func (s *PaymentsScreen) buildUI() {
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.payments) + 1, 8 // +1 for header
+			return len(s.filteredPayments) + 1, 8 // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -90,11 +100,11 @@ func (s *PaymentsScreen) buildUI() {
 			}
 
 			// Data
-			if id.Row-1 >= len(s.payments) {
+			if id.Row-1 >= len(s.filteredPayments) {
 				label.SetText("")
 				return
 			}
-			p := s.payments[id.Row-1]
+			p := s.filteredPayments[id.Row-1]
 
 			// Reset style
 			label.TextStyle = fyne.TextStyle{}
@@ -158,20 +168,21 @@ func (s *PaymentsScreen) buildUI() {
 	s.searchEntry = newSearchEntry("Пошук...", func(_ string) { s.applyFilters() })
 
 	s.filterSelect = newFilterSelect([]string{
-		"Всі",
-		"Поточний місяць",
-		"Минулий місяць",
-		"Непідтверджені",
-		"Підтверджені",
+		string(PaymentFilterAll),
+		string(PaymentFilterCurrent),
+		string(PaymentFilterPrevious),
+		string(PaymentFilterNotApproved),
+		string(PaymentFilterApproved),
 	}, func(selected string) {
-		s.loadPayments()
+		s.applyFilters()
 	})
 
 	// Stats
 	s.statsLabel = widget.NewLabel("")
 
 	// Trigger initial load
-	s.filterSelect.SetSelected("Всі")
+	s.filterSelect.SetSelected(string(PaymentFilterAll))
+	s.loadPayments()
 }
 
 func (s *PaymentsScreen) Render() fyne.CanvasObject {
@@ -189,28 +200,6 @@ func (s *PaymentsScreen) loadPayments() {
 		OrderBy:       "payment_date",
 	}
 
-	// Apply filters
-	now := time.Now()
-	switch s.filterSelect.Selected {
-	case "Поточний місяць":
-		m := int(now.Month())
-		y := now.Year()
-		input.PeriodMonth = &m
-		input.PeriodYear = &y
-	case "Минулий місяць":
-		prev := now.AddDate(0, -1, 0)
-		m := int(prev.Month())
-		y := prev.Year()
-		input.PeriodMonth = &m
-		input.PeriodYear = &y
-	case "Непідтверджені":
-		approved := false
-		input.IsApproved = &approved
-	case "Підтверджені":
-		approved := true
-		input.IsApproved = &approved
-	}
-
 	output, err := s.paymentService.List(ctx, input)
 	if err != nil {
 		dialog.ShowError(err, s.window)
@@ -219,8 +208,7 @@ func (s *PaymentsScreen) loadPayments() {
 
 	s.payments = output.Payments
 	s.totalCount = output.Total
-	s.table.Refresh()
-	s.updateStats()
+	s.applyFilters()
 }
 
 func (s *PaymentsScreen) showPaymentDialog(existing *payment.PaymentOutput) {
@@ -330,16 +318,40 @@ func (s *PaymentsScreen) applyFilters() {
 	filter := s.filterSelect.Selected
 	searchQuery := s.searchEntry.Text
 
-	for _, p := range s.payments {
-		// написати фільтри
-		if filter == "Всі" {
-			if "" != searchQuery {
-				continue
+	s.filteredPayments = FilterList(
+		s.payments,
+		searchQuery,
+		filter,
+		func(p *payment.PaymentOutput, query string) bool {
+			return contains(p.PaymentPurpose, query) ||
+				contains(fmt.Sprintf("%.2f", p.Amount), query) ||
+				(p.ReceiptNumber != nil && contains(*p.ReceiptNumber, query)) ||
+				(p.Notes != nil && contains(*p.Notes, query)) ||
+				contains(p.MethodName, query)
+		},
+		func(p *payment.PaymentOutput, filter string) bool {
+			switch PaymentFilterType(filter) {
+			case PaymentFilterAll:
+				return true
+			case PaymentFilterApproved:
+				return p.IsApproved
+			case PaymentFilterNotApproved:
+				return !p.IsApproved
+			// TODO: Реалізувати фільтрацію за датою для PaymentFilterCurrent та PaymentFilterPrevious
+			// Це вимагає парсингу дати платежу, що краще робити на рівні сервісу або тут, якщо є доступ до time.Time
+			case PaymentFilterCurrent:
+				// Приклад: якщо p.PaymentDate доступна як time.Time
+				now := time.Now()
+				return p.PaymentDate.Month() == now.Month() && p.PaymentDate.Year() == now.Year()
+			case PaymentFilterPrevious:
+				prev := time.Now().AddDate(0, -1, 0)
+				return p.PaymentDate.Month() == prev.Month() && p.PaymentDate.Year() == prev.Year()
 			}
-		}
-
-		s.filteredPayments = append(s.filteredPayments, p)
-	}
+			return true
+		},
+	)
+	s.table.Refresh()
+	s.updateStats()
 }
 
 // getStatsText повертає текст статистики.
