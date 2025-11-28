@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	filePath := "workdata/нарахування23.xlsx"
+	filePath := "workdata/відомість по 311-23.xlsx"
 
 	f, err := excelize.OpenFile(filePath)
 	if err != nil {

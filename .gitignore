@@ -39,3 +39,4 @@ go.work.sum
 *.db-shm
 
 main
+/workdata
