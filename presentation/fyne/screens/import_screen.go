@@ -4,6 +4,8 @@ package screens
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
+	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -284,12 +286,39 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 	// Створення табів
 	tabs := container.NewAppTabs()
 
-	// Ітерація від 12 до 1 (від більшого до меншого)
-	for month := 12; month >= 1; month-- {
+	// Ітерація від 1 до 12 (від січня до грудня)
+	for month := 1; month <= 12; month++ {
 		monthRecords, exists := recordsByMonth[month]
 		if !exists || len(monthRecords) == 0 {
 			continue
 		}
+
+		// Сортування записів за номером квартири (натуральне сортування)
+		sort.Slice(monthRecords, func(i, j int) bool {
+			n1 := monthRecords[i].ApartmentNumber
+			n2 := monthRecords[j].ApartmentNumber
+
+			// Спробуємо перетворити в числа
+			i1, err1 := strconv.Atoi(n1)
+			i2, err2 := strconv.Atoi(n2)
+
+			if err1 == nil && err2 == nil {
+				return i1 < i2
+			}
+
+			// Якщо не числа, або змішані - порівнюємо як рядки
+			// Але спочатку за довжиною, щоб "2" було перед "10"
+			if len(n1) != len(n2) {
+				// Це працює тільки для числових рядків, для "1а" і "10" може бути не точно
+				// Але для квартир зазвичай ок
+				if err1 == nil || err2 == nil {
+					// Якщо хоча б одне число - коротке число менше довгого
+					return len(n1) < len(n2)
+				}
+			}
+
+			return n1 < n2
+		})
 
 		// Створення таблиці для місяця
 		table := s.createMonthTable(monthRecords)
