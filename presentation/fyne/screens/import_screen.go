@@ -275,7 +275,56 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 		return
 	}
 
-	// Створити таблицю для відображення записів
+	// Групування записів по місяцях
+	recordsByMonth := make(map[int][]*entity.ImportedMonthlyRecord)
+	for _, record := range records {
+		recordsByMonth[record.PeriodMonth] = append(recordsByMonth[record.PeriodMonth], record)
+	}
+
+	// Створення табів
+	tabs := container.NewAppTabs()
+
+	// Ітерація від 12 до 1 (від більшого до меншого)
+	for month := 12; month >= 1; month-- {
+		monthRecords, exists := recordsByMonth[month]
+		if !exists || len(monthRecords) == 0 {
+			continue
+		}
+
+		// Створення таблиці для місяця
+		table := s.createMonthTable(monthRecords)
+
+		// Назва місяця
+		monthName := common.GetMonthName(month)
+		tabItem := container.NewTabItem(fmt.Sprintf("%s (%d)", monthName, len(monthRecords)), table)
+		tabs.Append(tabItem)
+	}
+
+	// Якщо немає записів (що дивно), показати пустий контейнер
+	if len(tabs.Items) == 0 {
+		tabs.Append(container.NewTabItem("Немає даних", widget.NewLabel("Немає записів для відображення")))
+	}
+
+	// Створити контейнер для діалогу
+	content := container.NewBorder(
+		widget.NewLabel(fmt.Sprintf("Батч #%d: %s (Всього: %d записів)", batch.ID, batch.FileName, len(records))),
+		nil, nil, nil,
+		tabs,
+	)
+
+	// Показати в діалозі
+	d := dialog.NewCustom(
+		"Деталі імпорту по місяцях",
+		"Закрити",
+		content,
+		s.window,
+	)
+	d.Resize(fyne.NewSize(900, 700))
+	d.Show()
+}
+
+// createMonthTable створює таблицю для конкретного місяця
+func (s *ImportScreen) createMonthTable(records []*entity.ImportedMonthlyRecord) *widget.Table {
 	table := widget.NewTable(
 		func() (int, int) {
 			return len(records) + 1, 6 // +1 для заголовка, 6 колонок
@@ -325,22 +374,7 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 		5: 100, // Борг
 	})
 
-	// Створити контейнер для діалогу
-	content := container.NewBorder(
-		widget.NewLabel(fmt.Sprintf("Батч #%d: %s (%d записів)", batch.ID, batch.FileName, len(records))),
-		nil, nil, nil,
-		table,
-	)
-
-	// Показати в діалозі
-	d := dialog.NewCustom(
-		"Деталі імпорту",
-		"Закрити",
-		content,
-		s.window,
-	)
-	d.Resize(fyne.NewSize(800, 600))
-	d.Show()
+	return table
 }
 
 // confirmDeleteBatch підтверджує видалення батчу.
