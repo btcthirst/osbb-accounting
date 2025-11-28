@@ -130,16 +130,21 @@ func showConfirmDeleteDialog(window fyne.Window, entityName string, onDelete fun
 
 // buildStandardActions створює стандартний набір дій (Редагувати, Видалити, Деталі)
 func buildStandardActions(onEdit func(), onDelete func(), onDetails func()) []common.Action {
-	actions := []common.Action{
-		{
+	actions := make([]common.Action, 0)
+
+	if onEdit != nil {
+		actions = append(actions, common.Action{
 			Label: "✏️ Редагувати",
 			OnTap: onEdit,
-		},
-		{
+		})
+	}
+
+	if onDelete != nil {
+		actions = append(actions, common.Action{
 			Label:      "🗑️ Видалити",
 			OnTap:      onDelete,
 			Importance: widget.DangerImportance,
-		},
+		})
 	}
 
 	if onDetails != nil {

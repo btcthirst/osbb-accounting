@@ -141,6 +141,14 @@ func ShowMainScreen(
 			},
 		},
 		{
+			Title: "📥 Імпорт/Експорт",
+			Icon:  theme.DownloadIcon(),
+			ScreenFunc: func() fyne.CanvasObject {
+				userID := authManager.GetCurrentUser().ID
+				return NewImportScreen(window, services.ImportService, userID).Render()
+			},
+		},
+		{
 			Title: "⚙️ Налаштування",
 			Icon:  theme.SettingsIcon(),
 			ScreenFunc: func() fyne.CanvasObject {
