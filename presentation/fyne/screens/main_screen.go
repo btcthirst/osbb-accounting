@@ -117,6 +117,14 @@ func ShowMainScreen(
 			},
 		},
 		{
+			Title:      "💰 Рух коштів",
+			Icon:       theme.DocumentSaveIcon(),
+			Permission: "payments.read", // Використовуємо той самий дозвіл як для платежів
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewCashFlowScreen(window, services.CashFlowService, authManager).Render()
+			},
+		},
+		{
 			Title:      "💸 Витрати",
 			Icon:       theme.ContentRemoveIcon(),
 			Permission: "expenses.read",

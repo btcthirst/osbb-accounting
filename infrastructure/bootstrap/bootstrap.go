@@ -8,6 +8,7 @@ import (
 
 	"osbb-accounting/application/service"
 	authUseCase "osbb-accounting/application/usecase/auth"
+	"osbb-accounting/application/usecase/cashflow"
 	"osbb-accounting/config"
 	"osbb-accounting/infrastructure/persistence/sqlite"
 	"osbb-accounting/infrastructure/security"
@@ -49,6 +50,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	ownershipRepo := sqlite.NewOwnershipShareRepository(db)
 	chargeRepo := sqlite.NewChargeRepository(db)
 	paymentRepo := sqlite.NewPaymentRepository(db)
+	contractorPaymentRepo := sqlite.NewContractorPaymentRepository(db)
 	expenseRepo := sqlite.NewExpenseRepository(db)
 	expenseCategoryRepo := sqlite.NewExpenseCategoryRepository(db)
 	contractorRepo := sqlite.NewContractorRepository(db)
@@ -118,6 +120,11 @@ func Initialize(cfg *config.Config) (*App, error) {
 		permissionRepo,
 	)
 
+	contractorPaymentService := service.NewContractorPaymentService(
+		contractorPaymentRepo,
+		permissionRepo,
+	)
+
 	osbbService := service.NewOSBBService(
 		osbbRepo,
 		permissionRepo,
@@ -128,19 +135,42 @@ func Initialize(cfg *config.Config) (*App, error) {
 		importRecordRepo,
 	)
 
+	// CashFlow Service (reports)
+	cashflowUseCase := cashflow.NewCashFlowUseCase(
+		paymentRepo,
+		contractorPaymentRepo,
+		expenseRepo,
+		ownershipRepo,
+		expenseCategoryRepo,
+		contractorRepo,
+	)
+
+	cashflowService := service.NewCashFlowService(
+		cashflowUseCase,
+		paymentRepo,
+		expenseRepo,
+		ownershipRepo,
+		apartmentRepo,
+		ownerRepo,
+		expenseCategoryRepo,
+		contractorRepo,
+	)
+
 	// 4. Create Service Container
 	services := &service.ServiceContainer{
-		AuthService:            authService,
-		OwnerService:           ownerService,
-		ApartmentService:       apartmentService,
-		OwnershipService:       ownershipService,
-		ChargeService:          chargeService,
-		PaymentService:         paymentService,
-		ExpenseService:         expenseService,
-		ExpenseCategoryService: expenseCategoryService,
-		ContractorService:      contractorService,
-		OSBBService:            osbbService,
-		ImportService:          importService,
+		AuthService:              authService,
+		OwnerService:             ownerService,
+		ApartmentService:         apartmentService,
+		OwnershipService:         ownershipService,
+		ChargeService:            chargeService,
+		PaymentService:           paymentService,
+		ContractorPaymentService: contractorPaymentService,
+		ExpenseService:           expenseService,
+		ExpenseCategoryService:   expenseCategoryService,
+		ContractorService:        contractorService,
+		CashFlowService:          cashflowService,
+		OSBBService:              osbbService,
+		ImportService:            importService,
 	}
 
 	return &App{
