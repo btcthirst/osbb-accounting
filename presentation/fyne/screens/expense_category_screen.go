@@ -11,13 +11,14 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/expense_category"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // ExpenseCategoryScreen - екран списку категорій витрат
 type ExpenseCategoryScreen struct {
-	window                 fyne.Window
-	expenseCategoryService *service.ExpenseCategoryService
-	authManager            interface {
+	window          fyne.Window
+	categoryService *service.ExpenseCategoryService
+	authManager     interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
 	}
@@ -49,16 +50,16 @@ const (
 // NewExpenseCategoryScreen створює новий екран
 func NewExpenseCategoryScreen(
 	window fyne.Window,
-	expenseCategoryService *service.ExpenseCategoryService,
+	categoryService *service.ExpenseCategoryService,
 	authManager interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
 	},
 ) *ExpenseCategoryScreen {
 	s := &ExpenseCategoryScreen{
-		window:                 window,
-		expenseCategoryService: expenseCategoryService,
-		authManager:            authManager,
+		window:          window,
+		categoryService: categoryService,
+		authManager:     authManager,
 	}
 	s.buildUI()
 	return s
@@ -158,7 +159,7 @@ func (s *ExpenseCategoryScreen) loadCategories() {
 		SearchQuery:   s.searchEntry.Text,
 	}
 
-	output, err := s.expenseCategoryService.List(ctx, input)
+	output, err := s.categoryService.List(ctx, input)
 	if err != nil {
 		common.ShowError(s.window, err)
 		return
@@ -170,9 +171,9 @@ func (s *ExpenseCategoryScreen) loadCategories() {
 }
 
 func (s *ExpenseCategoryScreen) showCategoryDialog(existing *expense_category.ExpenseCategoryOutput) {
-	d := NewExpenseCategoryFormDialog(
+	d := dialogs.NewExpenseCategoryFormDialog(
 		s.window,
-		s.expenseCategoryService,
+		s.categoryService,
 		s.authManager,
 		existing,
 	)
@@ -205,7 +206,7 @@ func (s *ExpenseCategoryScreen) confirmDelete(c *expense_category.ExpenseCategor
 
 func (s *ExpenseCategoryScreen) deleteCategory(id int64) {
 	ctx := context.Background()
-	_, err := s.expenseCategoryService.Delete(ctx, expense_category.DeleteExpenseCategoryInput{
+	_, err := s.categoryService.Delete(ctx, expense_category.DeleteExpenseCategoryInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		CategoryID:    id,
 	})

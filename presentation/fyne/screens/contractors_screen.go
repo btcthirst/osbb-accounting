@@ -12,6 +12,7 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/contractor"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // ContractorsScreen - екран списку контрагентів
@@ -215,7 +216,7 @@ func (s *ContractorsScreen) applyFilters() {
 }
 
 func (s *ContractorsScreen) showContractorDialog(existing *contractor.ContractorOutput) {
-	d := NewContractorFormDialog(
+	d := dialogs.NewContractorFormDialog(
 		s.window,
 		s.contractorService,
 		s.authManager,

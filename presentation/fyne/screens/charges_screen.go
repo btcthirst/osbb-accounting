@@ -14,6 +14,7 @@ import (
 	"osbb-accounting/domain/entity"
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // ChargesScreen представляє екран управління нарахуваннями.
@@ -96,7 +97,7 @@ func (s *ChargesScreen) buildUI() {
 
 	// Кнопка створення
 	s.createButton = newCreateButton("Додати нарахування", func() {
-		s.showCreateDialog()
+		s.showChargeDialog(nil)
 	})
 
 	s.refreshButton = newRefreshButton(func() {
@@ -320,7 +321,7 @@ func (s *ChargesScreen) showChargeDetails(c *charge.ChargeOutput) {
 // showActionsMenu показує меню дій.
 func (s *ChargesScreen) showActionsMenu(c *charge.ChargeOutput) {
 	actions := buildStandardActions(
-		func() { s.showEditDialog(c) },
+		func() { s.showChargeDialog(c) },
 		func() { s.confirmDelete(c) },
 		func() { s.showChargeDetails(c) },
 	)
@@ -328,22 +329,19 @@ func (s *ChargesScreen) showActionsMenu(c *charge.ChargeOutput) {
 	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з нарахуванням #%d", c.ID), actions)
 }
 
-// showCreateDialog показує діалог створення.
-func (s *ChargesScreen) showCreateDialog() {
-	dialog := NewChargeFormDialog(s.window, s.chargeService, s.ownershipService, s.authManager, nil)
-	dialog.OnSuccess = func() {
+// showChargeDialog показує діалог створення/редагування.
+func (s *ChargesScreen) showChargeDialog(existing *charge.ChargeOutput) {
+	d := dialogs.NewChargeFormDialog(
+		s.window,
+		s.chargeService,
+		s.ownershipService,
+		s.authManager,
+		existing,
+	)
+	d.OnSuccess = func() {
 		s.loadCharges()
 	}
-	dialog.Show()
-}
-
-// showEditDialog показує діалог редагування.
-func (s *ChargesScreen) showEditDialog(c *charge.ChargeOutput) {
-	dialog := NewChargeFormDialog(s.window, s.chargeService, s.ownershipService, s.authManager, c)
-	dialog.OnSuccess = func() {
-		s.loadCharges()
-	}
-	dialog.Show()
+	d.Show()
 }
 
 // confirmDelete підтверджує видалення.

@@ -11,13 +11,15 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/expense"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // ExpensesScreen - екран списку витрат
 type ExpensesScreen struct {
-	window         fyne.Window
-	expenseService *service.ExpenseService
-	authManager    interface {
+	window                 fyne.Window
+	expenseService         *service.ExpenseService
+	expenseCategoryService *service.ExpenseCategoryService
+	authManager            interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
 	}
@@ -50,16 +52,18 @@ const (
 func NewExpensesScreen(
 	window fyne.Window,
 	expenseService *service.ExpenseService,
+	expenseCategoryService *service.ExpenseCategoryService,
 	authManager interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
 	},
 ) *ExpensesScreen {
 	s := &ExpensesScreen{
-		window:         window,
-		expenseService: expenseService,
-		currentPage:    0,
-		authManager:    authManager,
+		window:                 window,
+		expenseService:         expenseService,
+		expenseCategoryService: expenseCategoryService,
+		currentPage:            0,
+		authManager:            authManager,
 	}
 	s.buildUI()
 	s.loadExpenses()
@@ -186,9 +190,10 @@ func (s *ExpensesScreen) loadExpenses() {
 }
 
 func (s *ExpensesScreen) showExpenseDialog(existing *expense.ExpenseOutput) {
-	d := NewExpenseFormDialog(
+	d := dialogs.NewExpenseFormDialog(
 		s.window,
 		s.expenseService,
+		s.expenseCategoryService,
 		s.authManager,
 		existing,
 	)

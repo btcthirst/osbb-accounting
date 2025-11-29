@@ -117,6 +117,14 @@ func ShowMainScreen(
 			},
 		},
 		{
+			Title:      "🏢 Платежі контрагентів",
+			Icon:       theme.AccountIcon(), // TODO: Better icon
+			Permission: "contractors.read",  // Using contractors permission for now
+			ScreenFunc: func() fyne.CanvasObject {
+				return NewContractorPaymentScreen(window, services.ContractorPaymentService, services.ContractorService, authManager).Render()
+			},
+		},
+		{
 			Title:      "💰 Рух коштів",
 			Icon:       theme.DocumentSaveIcon(),
 			Permission: "payments.read", // Використовуємо той самий дозвіл як для платежів
@@ -129,7 +137,7 @@ func ShowMainScreen(
 			Icon:       theme.ContentRemoveIcon(),
 			Permission: "expenses.read",
 			ScreenFunc: func() fyne.CanvasObject {
-				return NewExpensesScreen(window, services.ExpenseService, authManager).Render()
+				return NewExpensesScreen(window, services.ExpenseService, services.ExpenseCategoryService, authManager).Render()
 			},
 		},
 		{

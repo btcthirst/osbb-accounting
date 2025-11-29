@@ -14,6 +14,7 @@ import (
 	"osbb-accounting/application/usecase/osbb"
 	domainErrors "osbb-accounting/domain/errors"
 	"osbb-accounting/presentation/fyne/auth"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 type OSBBScreen struct {
@@ -72,9 +73,15 @@ func (s *OSBBScreen) showCreateView() {
 	label.TextStyle = fyne.TextStyle{Bold: true}
 
 	createBtn := widget.NewButtonWithIcon("Створити ОСББ", theme.ContentAddIcon(), func() {
-		ShowOSBBFormDialog(s.window, s.service, s.authManager, nil, func() {
-			s.refreshData()
-		})
+		dialogs.ShowOSBBFormDialog(
+			s.window,
+			s.service,
+			s.authManager,
+			nil,
+			func() {
+				s.refreshData()
+			},
+		)
 	})
 	createBtn.Importance = widget.HighImportance
 
@@ -125,7 +132,7 @@ func (s *OSBBScreen) showDetailsView(data *osbb.GetOSBBOutput) {
 
 	if s.authManager.HasPermission("system.all") {
 		editBtn := widget.NewButtonWithIcon("Редагувати", theme.DocumentCreateIcon(), func() {
-			ShowOSBBFormDialog(s.window, s.service, s.authManager, data, func() {
+			dialogs.ShowOSBBFormDialog(s.window, s.service, s.authManager, data, func() {
 				s.refreshData()
 			})
 		})

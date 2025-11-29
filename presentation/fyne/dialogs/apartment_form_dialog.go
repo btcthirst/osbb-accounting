@@ -1,5 +1,5 @@
 // presentation/fyne/screens/apartment_form_dialog.go
-package screens
+package dialogs
 
 import (
 	"context"

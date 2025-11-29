@@ -14,6 +14,7 @@ import (
 	"osbb-accounting/application/usecase/owner"
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // OwnersScreen представляє екран управління власниками.
@@ -340,7 +341,7 @@ func (s *OwnersScreen) showOwnerDetails(o *owner.OwnerOutput) {
 // showActionsMenu показує меню дій з власником.
 func (s *OwnersScreen) showActionsMenu(o *owner.OwnerOutput) {
 	actions := buildStandardActions(
-		func() { s.showEditDialog(o) },
+		func() { s.showOwnerDialog(o) },
 		func() { s.confirmDelete(o) },
 		func() { s.showOwnerDetails(o) },
 	)
@@ -350,20 +351,21 @@ func (s *OwnersScreen) showActionsMenu(o *owner.OwnerOutput) {
 
 // showCreateDialog показує діалог створення власника.
 func (s *OwnersScreen) showCreateDialog() {
-	dialog := NewOwnerFormDialog(s.window, s.ownerService, s.authManager, nil)
-	dialog.OnSuccess = func() {
-		s.loadOwners()
-	}
-	dialog.Show()
+	s.showOwnerDialog(nil)
 }
 
-// showEditDialog показує діалог редагування власника.
-func (s *OwnersScreen) showEditDialog(o *owner.OwnerOutput) {
-	dialog := NewOwnerFormDialog(s.window, s.ownerService, s.authManager, o)
-	dialog.OnSuccess = func() {
+// showOwnerDialog показує діалог створення/редагування власника.
+func (s *OwnersScreen) showOwnerDialog(existing *owner.OwnerOutput) {
+	d := dialogs.NewOwnerFormDialog(
+		s.window,
+		s.ownerService,
+		s.authManager,
+		existing,
+	)
+	d.OnSuccess = func() {
 		s.loadOwners()
 	}
-	dialog.Show()
+	d.Show()
 }
 
 // confirmDelete підтверджує видалення.

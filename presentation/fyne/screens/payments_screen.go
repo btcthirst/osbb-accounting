@@ -13,6 +13,7 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/payment"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // PaymentsScreen - екран списку платежів
@@ -212,7 +213,7 @@ func (s *PaymentsScreen) loadPayments() {
 }
 
 func (s *PaymentsScreen) showPaymentDialog(existing *payment.PaymentOutput) {
-	d := NewPaymentFormDialog(
+	d := dialogs.NewPaymentFormDialog(
 		s.window,
 		s.paymentService,
 		s.ownershipService,

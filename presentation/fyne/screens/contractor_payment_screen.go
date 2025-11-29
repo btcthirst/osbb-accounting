@@ -13,6 +13,7 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/contractorpayment"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // ContractorPaymentScreen - екран списку платежів від контрагентів
@@ -198,8 +199,17 @@ func (s *ContractorPaymentScreen) loadPayments() {
 }
 
 func (s *ContractorPaymentScreen) showPaymentDialog(existing *contractorpayment.ContractorPaymentOutput) {
-	// TODO: Створити ContractorPaymentFormDialog
-	common.ShowInformation(s.window, "TODO", "ContractorPaymentFormDialog ще не реалізовано")
+	d := dialogs.NewContractorPaymentFormDialog(
+		s.window,
+		s.contractorPaymentService,
+		s.contractorService,
+		s.authManager,
+		existing,
+	)
+	d.SetOnSaved(func() {
+		s.loadPayments()
+	})
+	d.Show()
 }
 
 func (s *ContractorPaymentScreen) showActionsMenu(rowIndex int) {

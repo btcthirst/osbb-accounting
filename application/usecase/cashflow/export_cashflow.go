@@ -61,7 +61,10 @@ func ExportToXLSX(input ExportToXLSXInput) (*excelize.File, error) {
 	row++
 
 	// Рядок 5: Заголовки таблиці
-	headers := []string{"№", "Дата", "Тип операції", "Контрагент", "Опис", "Дебет (надходження)", "Кредит (витрати)", "Баланс"}
+	headers := []string{
+		"№", "Контрагент", "Дата", "Дт рах. 311", "Оборот по дт",
+		"313", "63", "641", "641.1", "651", "94", "Оборот по кт",
+	}
 	for i, header := range headers {
 		cell := fmt.Sprintf("%s%d", string(rune('A'+i)), row)
 		f.SetCellValue(sheetName, cell, header)
@@ -88,7 +91,7 @@ func ExportToXLSX(input ExportToXLSXInput) (*excelize.File, error) {
 			{Type: "bottom", Color: "000000", Style: 1},
 		},
 	})
-	f.SetCellStyle(sheetName, fmt.Sprintf("A%d", row), fmt.Sprintf("H%d", row), headerStyle)
+	f.SetCellStyle(sheetName, fmt.Sprintf("A%d", row), fmt.Sprintf("L%d", row), headerStyle)
 	row++
 
 	// Стиль для даних
@@ -114,47 +117,80 @@ func ExportToXLSX(input ExportToXLSXInput) (*excelize.File, error) {
 
 	// Дані
 	for i, entry := range input.Entries {
-		// Номер
+		// A: Номер
 		f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), i+1)
 
-		// Дата
-		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), entry.Date.Format("02.01.2006"))
+		// B: Контрагент
+		f.SetCellValue(sheetName, fmt.Sprintf("B%d", row), entry.Counterparty)
 
-		// Тип
-		entryType := "Надходження"
-		if entry.Type == "expense" {
-			entryType = "Витрата"
-		}
-		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), entryType)
+		// C: Дата
+		f.SetCellValue(sheetName, fmt.Sprintf("C%d", row), entry.Date.Format("02.01.2006"))
 
-		// Контрагент
-		f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), entry.Counterparty)
-
-		// Опис
-		desc := entry.Description
-		if entry.Category != "" {
-			desc += fmt.Sprintf(" [%s]", entry.Category)
-		}
-		f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), desc)
-
-		// Дебет
+		// D: Дт рах. 311 (надходження)
 		if entry.Debit > 0 {
-			f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), entry.Debit)
+			f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), entry.Debit)
+			f.SetCellStyle(sheetName, fmt.Sprintf("D%d", row), fmt.Sprintf("D%d", row), numberStyle)
+		} else if entry.Type == "expense" && entry.Credit > 0 {
+			// Для витрат показуємо суму з мінусом або назву контрагента (як в UI)
+			f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), entry.Counterparty)
+		}
+
+		// E: Оборот по дт
+		if entry.Debit > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), entry.Debit)
+			f.SetCellStyle(sheetName, fmt.Sprintf("E%d", row), fmt.Sprintf("E%d", row), numberStyle)
+		}
+
+		// F: 313
+		if entry.Credit313 > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), entry.Credit313)
 			f.SetCellStyle(sheetName, fmt.Sprintf("F%d", row), fmt.Sprintf("F%d", row), numberStyle)
 		}
 
-		// Кредит
-		if entry.Credit > 0 {
-			f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), entry.Credit)
+		// G: 63
+		if entry.Credit63 > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), entry.Credit63)
 			f.SetCellStyle(sheetName, fmt.Sprintf("G%d", row), fmt.Sprintf("G%d", row), numberStyle)
 		}
 
-		// Баланс
-		f.SetCellValue(sheetName, fmt.Sprintf("H%d", row), entry.Balance)
-		f.SetCellStyle(sheetName, fmt.Sprintf("H%d", row), fmt.Sprintf("H%d", row), numberStyle)
+		// H: 641
+		if entry.Credit641 > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("H%d", row), entry.Credit641)
+			f.SetCellStyle(sheetName, fmt.Sprintf("H%d", row), fmt.Sprintf("H%d", row), numberStyle)
+		}
 
-		// Стиль для тексту
-		f.SetCellStyle(sheetName, fmt.Sprintf("A%d", row), fmt.Sprintf("E%d", row), dataStyle)
+		// I: 641.1
+		if entry.Credit6411 > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("I%d", row), entry.Credit6411)
+			f.SetCellStyle(sheetName, fmt.Sprintf("I%d", row), fmt.Sprintf("I%d", row), numberStyle)
+		}
+
+		// J: 651
+		if entry.Credit651 > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("J%d", row), entry.Credit651)
+			f.SetCellStyle(sheetName, fmt.Sprintf("J%d", row), fmt.Sprintf("J%d", row), numberStyle)
+		}
+
+		// K: 94
+		if entry.Credit94 > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("K%d", row), entry.Credit94)
+			f.SetCellStyle(sheetName, fmt.Sprintf("K%d", row), fmt.Sprintf("K%d", row), numberStyle)
+		}
+
+		// L: Оборот по кт
+		totalCredit := entry.Credit313 + entry.Credit63 + entry.Credit641 + entry.Credit6411 + entry.Credit651 + entry.Credit94
+		if totalCredit > 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("L%d", row), totalCredit)
+			f.SetCellStyle(sheetName, fmt.Sprintf("L%d", row), fmt.Sprintf("L%d", row), numberStyle)
+		} else if entry.Credit > 0 && totalCredit == 0 {
+			f.SetCellValue(sheetName, fmt.Sprintf("L%d", row), entry.Credit)
+			f.SetCellStyle(sheetName, fmt.Sprintf("L%d", row), fmt.Sprintf("L%d", row), numberStyle)
+		}
+
+		// Стиль для тексту (A-C)
+		f.SetCellStyle(sheetName, fmt.Sprintf("A%d", row), fmt.Sprintf("C%d", row), dataStyle)
+		// Стиль для рамок інших клітинок
+		f.SetCellStyle(sheetName, fmt.Sprintf("D%d", row), fmt.Sprintf("L%d", row), dataStyle)
 
 		row++
 	}
@@ -173,22 +209,28 @@ func ExportToXLSX(input ExportToXLSXInput) (*excelize.File, error) {
 		},
 	})
 
-	f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), "ВСЬОГО:")
-	f.SetCellValue(sheetName, fmt.Sprintf("F%d", row), input.TotalDebit)
-	f.SetCellValue(sheetName, fmt.Sprintf("G%d", row), input.TotalCredit)
-	f.SetCellValue(sheetName, fmt.Sprintf("H%d", row), input.EndBalance)
-	f.SetCellStyle(sheetName, fmt.Sprintf("E%d", row), fmt.Sprintf("H%d", row), summaryStyle)
-	f.SetCellStyle(sheetName, fmt.Sprintf("F%d", row), fmt.Sprintf("H%d", row), numberStyle)
+	f.SetCellValue(sheetName, fmt.Sprintf("A%d", row), "ВСЬОГО:")
+	f.SetCellValue(sheetName, fmt.Sprintf("D%d", row), input.TotalDebit)
+	f.SetCellValue(sheetName, fmt.Sprintf("E%d", row), input.TotalDebit)
+	f.SetCellValue(sheetName, fmt.Sprintf("L%d", row), input.TotalCredit)
+
+	f.SetCellStyle(sheetName, fmt.Sprintf("A%d", row), fmt.Sprintf("L%d", row), summaryStyle)
+	f.SetCellStyle(sheetName, fmt.Sprintf("D%d", row), fmt.Sprintf("L%d", row), numberStyle)
 
 	// Ширина колонок
-	f.SetColWidth(sheetName, "A", "A", 5)
-	f.SetColWidth(sheetName, "B", "B", 12)
-	f.SetColWidth(sheetName, "C", "C", 15)
-	f.SetColWidth(sheetName, "D", "D", 25)
-	f.SetColWidth(sheetName, "E", "E", 35)
-	f.SetColWidth(sheetName, "F", "F", 18)
-	f.SetColWidth(sheetName, "G", "G", 18)
-	f.SetColWidth(sheetName, "H", "H", 15)
+	// Ширина колонок
+	f.SetColWidth(sheetName, "A", "A", 5)  // №
+	f.SetColWidth(sheetName, "B", "B", 25) // Контрагент
+	f.SetColWidth(sheetName, "C", "C", 12) // Дата
+	f.SetColWidth(sheetName, "D", "D", 15) // Дт 311
+	f.SetColWidth(sheetName, "E", "E", 15) // Оборот дт
+	f.SetColWidth(sheetName, "F", "F", 12) // 313
+	f.SetColWidth(sheetName, "G", "G", 12) // 63
+	f.SetColWidth(sheetName, "H", "H", 12) // 641
+	f.SetColWidth(sheetName, "I", "I", 12) // 641.1
+	f.SetColWidth(sheetName, "J", "J", 12) // 651
+	f.SetColWidth(sheetName, "K", "K", 12) // 94
+	f.SetColWidth(sheetName, "L", "L", 15) // Оборот кт
 
 	return f, nil
 }

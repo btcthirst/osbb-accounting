@@ -1,5 +1,5 @@
 // presentation/fyne/screens/expense_category_form_dialog.go
-package screens
+package dialogs
 
 import (
 	"context"

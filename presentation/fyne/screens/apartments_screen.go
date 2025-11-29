@@ -13,6 +13,7 @@ import (
 	"osbb-accounting/application/usecase/apartment"
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 type ApartmentsScreen struct {
@@ -90,7 +91,7 @@ func (s *ApartmentsScreen) buildUI() {
 	)
 
 	s.createButton = newCreateButton("Додати квартиру", func() {
-		s.showCreateDialog()
+		s.showApartmentDialog(nil)
 	})
 
 	s.refreshButton = newRefreshButton(func() {
@@ -342,7 +343,7 @@ func (s *ApartmentsScreen) showApartmentDetails(a *apartment.ApartmentOutput) {
 // showActionsMenu показує меню дій з власником.
 func (s *ApartmentsScreen) showActionsMenu(a *apartment.ApartmentOutput) {
 	actions := buildStandardActions(
-		func() { s.showEditDialog(a) },
+		func() { s.showApartmentDialog(a) },
 		func() { s.confirmDelete(a) },
 		func() { s.showApartmentDetails(a) },
 	)
@@ -350,22 +351,18 @@ func (s *ApartmentsScreen) showActionsMenu(a *apartment.ApartmentOutput) {
 	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з квартирою № %s", a.ApartmentNumber), actions)
 }
 
-// showCreateDialog показує діалог створення.
-func (s *ApartmentsScreen) showCreateDialog() {
-	dialog := NewApartmentFormDialog(s.window, s.apartmentService, s.authManager, nil)
-	dialog.OnSuccess = func() {
+// showApartmentDialog показує діалог створення/редагування квартири.
+func (s *ApartmentsScreen) showApartmentDialog(existing *apartment.ApartmentOutput) {
+	d := dialogs.NewApartmentFormDialog(
+		s.window,
+		s.apartmentService,
+		s.authManager,
+		existing,
+	)
+	d.OnSuccess = func() {
 		s.loadApartments()
 	}
-	dialog.Show()
-}
-
-// showEditDialog показує діалог редагування.
-func (s *ApartmentsScreen) showEditDialog(a *apartment.ApartmentOutput) {
-	dialog := NewApartmentFormDialog(s.window, s.apartmentService, s.authManager, a)
-	dialog.OnSuccess = func() {
-		s.loadApartments()
-	}
-	dialog.Show()
+	d.Show()
 }
 
 // confirmDelete підтверджує видалення.

@@ -1,5 +1,5 @@
 // presentation/fyne/screens/ownership_form_dialog.go
-package screens
+package dialogs
 
 import (
 	"context"
@@ -28,7 +28,7 @@ type OwnershipFormDialog struct {
 	ownerService     service.OwnerServiceInterface
 	apartmentService service.ApartmentServiceInterface
 	authManager      *auth.AuthManager
-	existingShare    *ownership.OwnershipShareDetailsOutput
+	existingShare    *ownership.OwnershipShareOutput
 
 	// UI елементи
 	dialog              dialog.Dialog
@@ -65,7 +65,7 @@ func NewOwnershipFormDialog(
 	ownerService service.OwnerServiceInterface,
 	apartmentService service.ApartmentServiceInterface,
 	authManager *auth.AuthManager,
-	existingShare *ownership.OwnershipShareDetailsOutput,
+	existingShare *ownership.OwnershipShareOutput,
 ) *OwnershipFormDialog {
 	d := &OwnershipFormDialog{
 		window:           window,

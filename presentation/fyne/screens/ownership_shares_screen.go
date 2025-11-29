@@ -15,6 +15,7 @@ import (
 	"osbb-accounting/domain/entity"
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/dialogs"
 )
 
 // OwnershipSharesScreen представляє екран управління частками власності.
@@ -353,7 +354,7 @@ func (s *OwnershipSharesScreen) showShareDetails(share *ownership.OwnershipShare
 // showActionsMenu показує меню дій з часткою.
 func (s *OwnershipSharesScreen) showActionsMenu(share *ownership.OwnershipShareDetailsOutput) {
 	actions := buildStandardActions(
-		func() { s.showEditDialog(share) },
+		func() { s.showOwnershipDialog(&share.OwnershipShareOutput) }, // Pass embedded struct
 		func() { s.confirmDelete(share) },
 		func() { s.showShareDetails(share) },
 	)
@@ -363,20 +364,27 @@ func (s *OwnershipSharesScreen) showActionsMenu(share *ownership.OwnershipShareD
 
 // showCreateDialog показує діалог створення частки.
 func (s *OwnershipSharesScreen) showCreateDialog() {
-	formDialog := NewOwnershipFormDialog(s.window, s.ownershipService, s.ownerService, s.apartmentService, s.authManager, nil)
+	formDialog := dialogs.NewOwnershipFormDialog(s.window, s.ownershipService, s.ownerService, s.apartmentService, s.authManager, nil)
 	formDialog.OnSuccess = func() {
 		s.loadShares()
 	}
 	formDialog.Show()
 }
 
-// showEditDialog показує діалог редагування частки.
-func (s *OwnershipSharesScreen) showEditDialog(share *ownership.OwnershipShareDetailsOutput) {
-	formDialog := NewOwnershipFormDialog(s.window, s.ownershipService, s.ownerService, s.apartmentService, s.authManager, share)
-	formDialog.OnSuccess = func() {
+// showOwnershipDialog показує діалог створення/редагування частки.
+func (s *OwnershipSharesScreen) showOwnershipDialog(existing *ownership.OwnershipShareOutput) {
+	d := dialogs.NewOwnershipFormDialog(
+		s.window,
+		s.ownershipService,
+		s.ownerService,
+		s.apartmentService,
+		s.authManager,
+		existing,
+	)
+	d.OnSuccess = func() {
 		s.loadShares()
 	}
-	formDialog.Show()
+	d.Show()
 }
 
 // confirmDelete підтверджує видалення частки.

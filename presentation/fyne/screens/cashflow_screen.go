@@ -147,9 +147,6 @@ func (s *CashFlowScreen) createTable() {
 				if entry.Debit > 0 {
 					label.SetText(fmt.Sprintf("%.2f", entry.Debit))
 					label.TextStyle = fyne.TextStyle{Bold: true}
-				} else if entry.Type == "expense" && entry.Credit > 0 {
-					// Для витрат показуємо суму з мінусом або назву контрагента
-					label.SetText(entry.Counterparty)
 				} else {
 					label.SetText("")
 				}
