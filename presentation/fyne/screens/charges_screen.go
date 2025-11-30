@@ -15,6 +15,7 @@ import (
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // ChargesScreen представляє екран управління нарахуваннями.
@@ -43,14 +44,14 @@ type ChargesScreen struct {
 type ChargeFilterType string
 
 const (
-	ChargeFilterAll         ChargeFilterType = "Всі нарахування"
-	ChargeFilterCurrent     ChargeFilterType = "Поточний місяць"
-	ChargeFilterPrevious    ChargeFilterType = "Минулий місяць"
-	ChargeFilterMaintenance ChargeFilterType = "Утримання"
-	ChargeFilterUtility     ChargeFilterType = "Комунальні"
-	ChargeFilterRepair      ChargeFilterType = "Ремонт"
-	ChargeFilterPenalty     ChargeFilterType = "Пеня"
-	ChargeFilterOther       ChargeFilterType = "Інше"
+	ChargeFilterAll         ChargeFilterType = text.FilterChargeAll
+	ChargeFilterCurrent     ChargeFilterType = text.FilterChargeCurrent
+	ChargeFilterPrevious    ChargeFilterType = text.FilterChargePrevious
+	ChargeFilterMaintenance ChargeFilterType = text.FilterChargeMaintenance
+	ChargeFilterUtility     ChargeFilterType = text.FilterChargeUtility
+	ChargeFilterRepair      ChargeFilterType = text.FilterChargeRepair
+	ChargeFilterPenalty     ChargeFilterType = text.FilterChargePenalty
+	ChargeFilterOther       ChargeFilterType = text.FilterChargeOther
 )
 
 // NewChargesScreen створює новий екран нарахувань.
@@ -76,7 +77,7 @@ func NewChargesScreen(
 // buildUI створює інтерфейс екрану.
 func (s *ChargesScreen) buildUI() {
 	// Пошук
-	s.searchEntry = newSearchEntry("🔍 Пошук за описом...", func(query string) {
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(query string) {
 		s.applyFilters()
 	})
 
@@ -96,7 +97,7 @@ func (s *ChargesScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = newCreateButton("Додати нарахування", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" нарахування", func() {
 		s.showChargeDialog(nil)
 	})
 
@@ -116,7 +117,7 @@ func (s *ChargesScreen) buildUI() {
 func (s *ChargesScreen) buildTable() {
 	s.chargesTable = widget.NewTable(
 		func() (int, int) {
-			return len(s.filteredCharges) + 1, 7 // +1 для заголовків, 7 колонок
+			return len(s.filteredCharges) + 1, len(text.ChargesTableHeaders) // +1 для заголовків, 7 колонок
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -125,9 +126,8 @@ func (s *ChargesScreen) buildTable() {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
-				// Заголовки
-				renderTableHeader(label,
-					[]string{"№", "Дата", "Період", "Тип", "Сума", "Платник", "Дії"}, id.Col)
+				// Заголовки "№", "Дата", "Період", "Тип", "Сума", "Платник", "Дії"
+				renderTableHeader(label, text.ChargesTableHeaders, id.Col)
 				return
 			}
 
@@ -153,7 +153,7 @@ func (s *ChargesScreen) buildTable() {
 			case 5: // Платник
 				// TODO: Тут краще було б мати ім'я власника або номер квартири в ChargeOutput
 				// Поки що виводимо ID частки, але це треба виправити в майбутньому
-				label.SetText(fmt.Sprintf("ID: %d", c.OwnershipShareID))
+				label.SetText(fmt.Sprintf(text.LabelPayerID, c.OwnershipShareID))
 			case 6: // Дії
 				renderActionColumn(label)
 			}
@@ -244,7 +244,7 @@ func (s *ChargesScreen) loadCharges() {
 	})
 
 	if err != nil {
-		common.ShowError(s.window, fmt.Errorf("Помилка завантаження нарахувань: %v", err))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorChargeLoading, err))
 		return
 	}
 
@@ -315,7 +315,7 @@ func (s *ChargesScreen) showChargeDetails(c *charge.ChargeOutput) {
 		details += fmt.Sprintf("\nОпис: %s\n", *c.Description)
 	}
 
-	common.ShowInformation(s.window, "Деталі нарахування", details)
+	common.ShowInformation(s.window, text.TitleChargeDetails, details)
 }
 
 // showActionsMenu показує меню дій.
@@ -326,7 +326,7 @@ func (s *ChargesScreen) showActionsMenu(c *charge.ChargeOutput) {
 		func() { s.showChargeDetails(c) },
 	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з нарахуванням #%d", c.ID), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleChargeActions, c.ID), actions)
 }
 
 // showChargeDialog показує діалог створення/редагування.
@@ -346,7 +346,7 @@ func (s *ChargesScreen) showChargeDialog(existing *charge.ChargeOutput) {
 
 // confirmDelete підтверджує видалення.
 func (s *ChargesScreen) confirmDelete(c *charge.ChargeOutput) {
-	showConfirmDeleteDialog(s.window, fmt.Sprintf("нарахування #%d", c.ID), func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelChargeID, c.ID), func() {
 		s.deleteCharge(c)
 	})
 }
@@ -366,6 +366,6 @@ func (s *ChargesScreen) deleteCharge(c *charge.ChargeOutput) {
 		return
 	}
 
-	common.ShowSuccess(s.window, "Нарахування успішно видалено")
+	common.ShowSuccess(s.window, text.MsgSuccessChargeDeleted)
 	s.loadCharges()
 }

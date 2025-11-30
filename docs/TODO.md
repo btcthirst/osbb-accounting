@@ -173,3 +173,9 @@ Tests to add:
    - User should test with real data after implementation
    - Verify category mapping works for actual expenses
    - Confirm 12-column format meets accounting requirements
+
+💡 Опціональні покращення на майбутнє
+Локалізація - готово до перекладу (всі тексти в одному місці)
+Рефакторинг ImportService - додати підтримку context (окрема задача)
+Кешування - довідкові дані для автокомпліту
+Метрики - час завантаження, користувацькі дії

@@ -74,7 +74,7 @@ func (s *OwnershipService) Create(
 	return s.createShare.Execute(ctx, input)
 }
 
-// Get отримує частку за ID з деталями.
+// Get отримує частку власності за ID з деталями.
 func (s *OwnershipService) Get(
 	ctx context.Context,
 	input ownership.GetOwnershipShareInput,
@@ -82,7 +82,7 @@ func (s *OwnershipService) Get(
 	return s.getShare.Execute(ctx, input)
 }
 
-// Update оновлює частку власності.
+// Update оновлює дані частки власності.
 func (s *OwnershipService) Update(
 	ctx context.Context,
 	input ownership.UpdateOwnershipShareInput,
@@ -98,7 +98,7 @@ func (s *OwnershipService) Delete(
 	return s.deleteShare.Execute(ctx, input)
 }
 
-// List отримує список часток з фільтрацією.
+// List отримує список часток власності з фільтрацією.
 func (s *OwnershipService) List(
 	ctx context.Context,
 	input ownership.ListOwnershipSharesInput,
@@ -122,6 +122,7 @@ func (s *OwnershipService) GetByOwner(
 	return s.getByOwner.Execute(ctx, input)
 }
 
+// CalculateRemaining розраховує залишок частки власності для квартири.
 func (s *OwnershipService) CalculateRemaining(
 	ctx context.Context,
 	input ownership.CalculateRemainingShareInput,

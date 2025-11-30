@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/payment"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // PaymentsScreen - екран списку платежів
@@ -45,11 +45,11 @@ type PaymentsScreen struct {
 type PaymentFilterType string
 
 const (
-	PaymentFilterAll         PaymentFilterType = "Всі платежі"
-	PaymentFilterCurrent     PaymentFilterType = "Поточний місяць"
-	PaymentFilterPrevious    PaymentFilterType = "Минулий місяць"
-	PaymentFilterNotApproved PaymentFilterType = "Непідтверджені платежі"
-	PaymentFilterApproved    PaymentFilterType = "Підтверджені платежі"
+	PaymentFilterAll         PaymentFilterType = text.FilterPaymentAll
+	PaymentFilterCurrent     PaymentFilterType = text.FilterPaymentCurrent
+	PaymentFilterPrevious    PaymentFilterType = text.FilterPaymentPrevious
+	PaymentFilterNotApproved PaymentFilterType = text.FilterPaymentNotApproved
+	PaymentFilterApproved    PaymentFilterType = text.FilterPaymentApproved
 )
 
 // NewPaymentsScreen створює новий екран
@@ -74,7 +74,7 @@ func NewPaymentsScreen(
 
 func (s *PaymentsScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton("Додати платіж", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" платіж", func() {
 		s.showPaymentDialog(nil)
 	})
 
@@ -95,8 +95,7 @@ func (s *PaymentsScreen) buildUI() {
 
 			if id.Row == 0 {
 				// Headers
-				renderTableHeader(label,
-					[]string{"ID", "Дата", "Період", "Метод", "Сума", "Підтверджено", "Квитанція", "Дії"}, id.Col)
+				renderTableHeader(label, text.PaymentsTableHeaders, id.Col)
 				return
 			}
 
@@ -127,9 +126,9 @@ func (s *PaymentsScreen) buildUI() {
 				label.SetText(fmt.Sprintf("%.2f грн", p.Amount))
 			case 5: // Approved
 				if p.IsApproved {
-					label.SetText("Так")
+					label.SetText(text.LabelYes)
 				} else {
-					label.SetText("Ні")
+					label.SetText(text.LabelNo)
 				}
 			case 6: // Receipt
 				if p.ReceiptNumber != nil {
@@ -166,7 +165,7 @@ func (s *PaymentsScreen) buildUI() {
 	}
 
 	// Filters
-	s.searchEntry = newSearchEntry("Пошук...", func(_ string) { s.applyFilters() })
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(_ string) { s.applyFilters() })
 
 	s.filterSelect = newFilterSelect([]string{
 		string(PaymentFilterAll),
@@ -192,7 +191,9 @@ func (s *PaymentsScreen) Render() fyne.CanvasObject {
 }
 
 func (s *PaymentsScreen) loadPayments() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	input := payment.ListPaymentsInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		Limit:         100,
@@ -203,7 +204,7 @@ func (s *PaymentsScreen) loadPayments() {
 
 	output, err := s.paymentService.List(ctx, input)
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorPaymentLoading, err))
 		return
 	}
 
@@ -235,14 +236,14 @@ func (s *PaymentsScreen) showActionsMenu(rowIndex int) {
 	actions := buildStandardActions(
 		func() {
 			if p.IsApproved {
-				common.ShowInformation(s.window, "Інформація", "Не можна редагувати підтверджений платіж")
+				common.ShowInformation(s.window, "Інформація", text.MsgErrorEditApproved)
 				return
 			}
 			s.showPaymentDialog(p)
 		},
 		func() {
 			if p.IsApproved {
-				common.ShowInformation(s.window, "Інформація", "Не можна видалити підтверджений платіж")
+				common.ShowInformation(s.window, "Інформація", text.MsgErrorDeleteApproved)
 				return
 			}
 			s.confirmDelete(p)
@@ -252,41 +253,45 @@ func (s *PaymentsScreen) showActionsMenu(rowIndex int) {
 
 	if p.IsApproved {
 		actions = append(actions, common.Action{
-			Label: "↩️ Скасувати підтвердження",
+			Label: text.ActionUnapprove,
 			OnTap: func() { s.unapprovePayment(p.ID) },
 		})
 	} else {
 		actions = append(actions, common.Action{
-			Label: "✅ Підтвердити",
+			Label: text.ActionApprove,
 			OnTap: func() { s.approvePayment(p.ID) },
 		})
 	}
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Платіж #%d", p.ID), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitlePaymentActions, p.ID), actions)
 }
 
 func (s *PaymentsScreen) confirmDelete(p *payment.PaymentOutput) {
-	showConfirmDeleteDialog(s.window, fmt.Sprintf("платіж #%d", p.ID), func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelPaymentID, p.ID), func() {
 		s.deletePayment(p.ID)
 	})
 }
 
 func (s *PaymentsScreen) deletePayment(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.paymentService.Delete(ctx, payment.DeletePaymentInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		PaymentID:     id,
 	})
 	if err != nil {
-		common.ShowError(s.window, err)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorDeleting, err))
 		return
 	}
-	common.ShowSuccess(s.window, "Платіж успішно видалено")
+	common.ShowSuccess(s.window, text.MsgSuccessPaymentDeleted)
 	s.loadPayments()
 }
 
 func (s *PaymentsScreen) approvePayment(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.paymentService.Approve(ctx, payment.ApprovePaymentInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		PaymentID:     id,
@@ -295,12 +300,14 @@ func (s *PaymentsScreen) approvePayment(id int64) {
 		common.ShowError(s.window, err)
 		return
 	}
-	common.ShowSuccess(s.window, "Платіж підтверджено")
+	common.ShowSuccess(s.window, text.MsgSuccessPaymentApproved)
 	s.loadPayments()
 }
 
 func (s *PaymentsScreen) unapprovePayment(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.paymentService.Unapprove(ctx, payment.UnapprovePaymentInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		PaymentID:     id,
@@ -309,7 +316,7 @@ func (s *PaymentsScreen) unapprovePayment(id int64) {
 		common.ShowError(s.window, err)
 		return
 	}
-	common.ShowSuccess(s.window, "Підтвердження платежу скасовано")
+	common.ShowSuccess(s.window, text.MsgSuccessPaymentUnapproved)
 	s.loadPayments()
 }
 

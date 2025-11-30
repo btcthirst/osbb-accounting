@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/contractorpayment"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // ContractorPaymentScreen - екран списку платежів від контрагентів
@@ -45,9 +45,9 @@ type ContractorPaymentScreen struct {
 type ContractorPaymentFilterType string
 
 const (
-	ContractorPaymentFilterAll      ContractorPaymentFilterType = "Всі платежі"
-	ContractorPaymentFilterCurrent  ContractorPaymentFilterType = "Поточний місяць"
-	ContractorPaymentFilterPrevious ContractorPaymentFilterType = "Минулий місяць"
+	ContractorPaymentFilterAll      ContractorPaymentFilterType = text.FilterContractorPaymentAll
+	ContractorPaymentFilterCurrent  ContractorPaymentFilterType = text.FilterContractorPaymentCurrent
+	ContractorPaymentFilterPrevious ContractorPaymentFilterType = text.FilterContractorPaymentPrevious
 )
 
 // NewContractorPaymentScreen створює новий екран
@@ -72,7 +72,7 @@ func NewContractorPaymentScreen(
 
 func (s *ContractorPaymentScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton("Додати платіж", func() {
+	s.createButton = newCreateButton(text.ActionAddPayment, func() {
 		s.showPaymentDialog(nil)
 	})
 
@@ -83,7 +83,7 @@ func (s *ContractorPaymentScreen) buildUI() {
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.filteredPayments) + 1, 7 // +1 for header
+			return len(s.filteredPayments) + 1, len(text.PaymentsTableHeaders) // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -92,9 +92,8 @@ func (s *ContractorPaymentScreen) buildUI() {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
-				// Headers
-				renderTableHeader(label,
-					[]string{"ID", "Контрагент", "Дата", "Період", "Метод", "Сума", "Дії"}, id.Col)
+				// Headers "ID", "Контрагент", "Дата", "Період", "Метод", "Сума", "Дії"
+				renderTableHeader(label, text.ContractorPaymentsTableHeaders, id.Col)
 				return
 			}
 
@@ -112,7 +111,7 @@ func (s *ContractorPaymentScreen) buildUI() {
 			case 0: // ID
 				label.SetText(fmt.Sprintf("%d", p.ID))
 			case 1: // Contractor (будемо заповнювати)
-				label.SetText(fmt.Sprintf("Контрагент #%d", p.ContractorID))
+				label.SetText(fmt.Sprintf(text.LabelContractorID, p.ContractorID))
 			case 2: // Date
 				label.SetText(p.PaymentDate.Format("02.01.2006"))
 			case 3: // Period
@@ -154,7 +153,7 @@ func (s *ContractorPaymentScreen) buildUI() {
 	}
 
 	// Filters
-	s.searchEntry = newSearchEntry("Пошук...", func(_ string) { s.applyFilters() })
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(_ string) { s.applyFilters() })
 
 	s.filterSelect = newFilterSelect([]string{
 		string(ContractorPaymentFilterAll),
@@ -178,18 +177,20 @@ func (s *ContractorPaymentScreen) Render() fyne.CanvasObject {
 }
 
 func (s *ContractorPaymentScreen) loadPayments() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	input := contractorpayment.ListContractorPaymentsInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
-		Limit:         100,
-		SearchQuery:   s.searchEntry.Text,
+		Limit:         1000, // Load all for client-side filtering
+		SearchQuery:   "",   // We filter on client side for now to match other screens
 		OrderDesc:     true,
 		OrderBy:       "payment_date",
 	}
 
 	output, err := s.contractorPaymentService.List(ctx, input)
 	if err != nil {
-		dialog.ShowError(err, s.window)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorLoading, err))
 		return
 	}
 
@@ -228,26 +229,28 @@ func (s *ContractorPaymentScreen) showActionsMenu(rowIndex int) {
 		nil, // No details view yet
 	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Платіж #%d", p.ID), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitlePaymentActions, p.ID), actions)
 }
 
 func (s *ContractorPaymentScreen) confirmDelete(p *contractorpayment.ContractorPaymentOutput) {
-	showConfirmDeleteDialog(s.window, fmt.Sprintf("платіж #%d", p.ID), func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelPaymentID, p.ID), func() {
 		s.deletePayment(p.ID)
 	})
 }
 
 func (s *ContractorPaymentScreen) deletePayment(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.contractorPaymentService.Delete(ctx, contractorpayment.DeleteContractorPaymentInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		PaymentID:     id,
 	})
 	if err != nil {
-		common.ShowError(s.window, err)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorDeleting, err))
 		return
 	}
-	common.ShowSuccess(s.window, "Платіж успішно видалено")
+	common.ShowSuccess(s.window, text.MsgSuccessPaymentDeleted)
 	s.loadPayments()
 }
 
@@ -292,7 +295,7 @@ func (s *ContractorPaymentScreen) getStatsText() string {
 	for _, p := range s.payments {
 		totalAmount += p.Amount
 	}
-	return fmt.Sprintf("Показано: %d платежів | Загальна сума: %.2f грн", len(s.payments), totalAmount)
+	return fmt.Sprintf(text.MsgContractorPaymentStats, len(s.payments), totalAmount)
 }
 
 // updateStats оновлює статистику.

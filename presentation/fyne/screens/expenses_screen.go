@@ -12,6 +12,8 @@ import (
 	"osbb-accounting/application/usecase/expense"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
+	"time"
 )
 
 // ExpensesScreen - екран списку витрат
@@ -43,9 +45,9 @@ type ExpensesScreen struct {
 type ExpenseFilterType string
 
 const (
-	ExpenseFilterAll         ExpenseFilterType = "Всі витрати"
-	ExpenseFilterApproved    ExpenseFilterType = "Затверджені витрати"
-	ExpenseFilterNotApproved ExpenseFilterType = "Не затверджені витрати"
+	ExpenseFilterAll         ExpenseFilterType = text.FilterExpenseAll
+	ExpenseFilterApproved    ExpenseFilterType = text.FilterExpenseApproved
+	ExpenseFilterNotApproved ExpenseFilterType = text.FilterExpenseNotApproved
 )
 
 // NewExpensesScreen створює новий екран
@@ -72,7 +74,7 @@ func NewExpensesScreen(
 
 func (s *ExpensesScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton("Додати витрату", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" витрату", func() {
 		s.showExpenseDialog(nil)
 	})
 
@@ -81,7 +83,7 @@ func (s *ExpensesScreen) buildUI() {
 	})
 
 	// Filters
-	s.searchEntry = newSearchEntry("Пошук...", func(_ string) { s.applyFilters() })
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(_ string) { s.applyFilters() })
 	s.filterSelect = newFilterSelect([]string{string(ExpenseFilterAll), string(ExpenseFilterApproved), string(ExpenseFilterNotApproved)}, func(_ string) {
 		s.applyFilters()
 	})
@@ -101,8 +103,7 @@ func (s *ExpensesScreen) buildUI() {
 
 			if id.Row == 0 {
 				// Headers
-				renderTableHeader(label,
-					[]string{"ID", "Дата", "Категорія", "Сума", "Статус", "Підтверджено", "Дії"}, id.Col)
+				renderTableHeader(label, text.ExpensesTableHeaders, id.Col)
 				return
 			}
 
@@ -129,9 +130,9 @@ func (s *ExpensesScreen) buildUI() {
 				label.SetText(e.PaymentStatusName)
 			case 5: // Approved
 				if e.IsApproved {
-					label.SetText("Так")
+					label.SetText(text.LabelYes)
 				} else {
-					label.SetText("Ні")
+					label.SetText(text.LabelNo)
 				}
 			case 6: // Actions
 				renderActionColumn(label)
@@ -171,16 +172,18 @@ func (s *ExpensesScreen) Render() fyne.CanvasObject {
 }
 
 func (s *ExpensesScreen) loadExpenses() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	input := expense.ListExpensesInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
-		Limit:         100,
-		SearchQuery:   s.searchEntry.Text,
+		Limit:         1000, // Load all for client-side filtering
+		SearchQuery:   "",   // We filter on client side for now to match other screens
 	}
 
 	output, err := s.expenseService.List(ctx, input)
 	if err != nil {
-		common.ShowError(s.window, err)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorLoading, err))
 		return
 	}
 
@@ -212,14 +215,14 @@ func (s *ExpensesScreen) showActionsMenu(rowIndex int) {
 	actions := buildStandardActions(
 		func() {
 			if e.IsApproved {
-				common.ShowInformation(s.window, "Інформація", "Не можна редагувати затверджену витрату")
+				common.ShowInformation(s.window, "Інформація", text.MsgErrorEditApproved)
 				return
 			}
 			s.showExpenseDialog(e)
 		},
 		func() {
 			if e.IsApproved {
-				common.ShowInformation(s.window, "Інформація", "Не можна видалити затверджену витрату")
+				common.ShowInformation(s.window, "Інформація", text.MsgErrorDeleteApproved)
 				return
 			}
 			s.confirmDelete(e)
@@ -229,41 +232,45 @@ func (s *ExpensesScreen) showActionsMenu(rowIndex int) {
 
 	if e.IsApproved {
 		actions = append(actions, common.Action{
-			Label: "↩️ Скасувати затвердження",
+			Label: text.ActionUnapprove,
 			OnTap: func() { s.unapproveExpense(e.ID) },
 		})
 	} else {
 		actions = append(actions, common.Action{
-			Label: "✅ Затвердити",
+			Label: text.ActionApprove,
 			OnTap: func() { s.approveExpense(e.ID) },
 		})
 	}
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Витрата #%d", e.ID), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleExpenseActions, e.ID), actions)
 }
 
 func (s *ExpensesScreen) confirmDelete(e *expense.ExpenseOutput) {
-	showConfirmDeleteDialog(s.window, fmt.Sprintf("витрату #%d", e.ID), func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelExpenseID, e.ID), func() {
 		s.deleteExpense(e.ID)
 	})
 }
 
 func (s *ExpensesScreen) deleteExpense(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.expenseService.Delete(ctx, expense.DeleteExpenseInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		ExpenseID:     id,
 	})
 	if err != nil {
-		common.ShowError(s.window, err)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorDeleting, err))
 		return
 	}
-	common.ShowSuccess(s.window, "Витрату успішно видалено")
+	common.ShowSuccess(s.window, text.MsgSuccessExpenseDeleted)
 	s.loadExpenses()
 }
 
 func (s *ExpensesScreen) approveExpense(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.expenseService.Approve(ctx, expense.ApproveExpenseInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		ExpenseID:     id,
@@ -272,12 +279,14 @@ func (s *ExpensesScreen) approveExpense(id int64) {
 		common.ShowError(s.window, err)
 		return
 	}
-	common.ShowSuccess(s.window, "Витрату затверджено")
+	common.ShowSuccess(s.window, text.MsgSuccessExpenseApproved)
 	s.loadExpenses()
 }
 
 func (s *ExpensesScreen) unapproveExpense(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.expenseService.Unapprove(ctx, expense.UnapproveExpenseInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		ExpenseID:     id,
@@ -286,7 +295,7 @@ func (s *ExpensesScreen) unapproveExpense(id int64) {
 		common.ShowError(s.window, err)
 		return
 	}
-	common.ShowSuccess(s.window, "Затвердження витрати скасовано")
+	common.ShowSuccess(s.window, text.MsgSuccessExpenseUnapproved)
 	s.loadExpenses()
 }
 

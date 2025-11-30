@@ -16,6 +16,7 @@ import (
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // OwnershipSharesScreen представляє екран управління частками власності.
@@ -45,12 +46,12 @@ type OwnershipSharesScreen struct {
 type OwnershipShareFilterType string
 
 const (
-	OwnershipShareFilterAll      OwnershipShareFilterType = "Всі частки"
-	OwnershipShareFilterActive   OwnershipShareFilterType = "Тільки активні зараз"
-	OwnershipShareFilterFull     OwnershipShareFilterType = "Повна власність"
-	OwnershipShareFilterShared   OwnershipShareFilterType = "Часткова власність"
-	OwnershipShareFilterRent     OwnershipShareFilterType = "Оренда"
-	OwnershipShareFilterFinished OwnershipShareFilterType = "Завершені"
+	OwnershipShareFilterAll      OwnershipShareFilterType = text.FilterShareAll
+	OwnershipShareFilterActive   OwnershipShareFilterType = text.FilterShareActive
+	OwnershipShareFilterFull     OwnershipShareFilterType = text.FilterShareFull
+	OwnershipShareFilterShared   OwnershipShareFilterType = text.FilterShareShared
+	OwnershipShareFilterRent     OwnershipShareFilterType = text.FilterShareRent
+	OwnershipShareFilterFinished OwnershipShareFilterType = text.FilterShareFinished
 )
 
 // NewOwnershipSharesScreen створює новий екран часток власності.
@@ -82,7 +83,7 @@ func (s *OwnershipSharesScreen) buildUI() {
 	// 1. Спочатку ініціалізуємо всі віджети, щоб уникнути nil pointer у колбеках
 	// Пошук
 	s.searchEntry = widget.NewEntry()
-	s.searchEntry.SetPlaceHolder("🔍 Пошук за власником або квартирою...")
+	s.searchEntry.SetPlaceHolder(text.ActionSearch + "...")
 	s.searchEntry.OnChanged = func(query string) {
 		s.applyFilters()
 	}
@@ -100,7 +101,7 @@ func (s *OwnershipSharesScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = newCreateButton("Додати частку", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" частку", func() {
 		s.showCreateDialog()
 	})
 
@@ -134,8 +135,7 @@ func (s *OwnershipSharesScreen) buildTable() {
 
 			if id.Row == 0 {
 				// Заголовки
-				renderTableHeader(label,
-					[]string{"№", "Власник", "Квартира", "Частка", "Тип", "Дати", "Дії"}, id.Col)
+				renderTableHeader(label, text.OwnershipSharesTableHeaders, id.Col)
 				return
 			}
 
@@ -156,9 +156,9 @@ func (s *OwnershipSharesScreen) buildTable() {
 					label.TextStyle = fyne.TextStyle{Italic: true}
 				}
 			case 2: // Квартира
-				label.SetText(fmt.Sprintf("Кв. %s", share.ApartmentNumber))
+				label.SetText(fmt.Sprintf(text.LabelApartmentShort, share.ApartmentNumber))
 			case 3: // Частка
-				label.SetText(fmt.Sprintf("%s (%.1f%%)",
+				label.SetText(fmt.Sprintf(text.LabelShareFormat,
 					share.ShareFraction, share.SharePercentage))
 			case 4: // Тип
 				label.SetText(share.OwnershipTypeName)
@@ -167,7 +167,7 @@ func (s *OwnershipSharesScreen) buildTable() {
 				if share.EndDate != nil {
 					dateStr += " - " + share.EndDate.Format("02.01.2006")
 				} else {
-					dateStr += " - теперішній час"
+					dateStr += " - " + text.LabelDatePresent
 				}
 				label.SetText(dateStr)
 			case 6: // Дії
@@ -248,7 +248,7 @@ func (s *OwnershipSharesScreen) loadShares() {
 	})
 
 	if err != nil {
-		common.ShowError(s.window, fmt.Errorf("Помилка завантаження часток: %v", err))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorShareLoading, err))
 		return
 	}
 
@@ -330,7 +330,7 @@ func (s *OwnershipSharesScreen) showShareDetails(share *ownership.OwnershipShare
 		share.SharePercentage,
 		share.OwnershipTypeName,
 		share.StartDate.Format("02.01.2006"),
-		ptrTimeToString(share.EndDate, "02.01.2006", "теперішній час"),
+		ptrTimeToString(share.EndDate, "02.01.2006", text.LabelDatePresent),
 		currentStatus(share.IsCurrentlyActive),
 	)
 
@@ -348,7 +348,7 @@ func (s *OwnershipSharesScreen) showShareDetails(share *ownership.OwnershipShare
 		details += fmt.Sprintf("\nПримітки: %s\n", *share.Notes)
 	}
 
-	common.ShowInformation(s.window, "Деталі частки власності", details)
+	common.ShowInformation(s.window, text.TitleShareDetails, details)
 }
 
 // showActionsMenu показує меню дій з часткою.
@@ -359,7 +359,7 @@ func (s *OwnershipSharesScreen) showActionsMenu(share *ownership.OwnershipShareD
 		func() { s.showShareDetails(share) },
 	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з часткою #%d", share.ID), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleShareActions, share.ID), actions)
 }
 
 // showCreateDialog показує діалог створення частки.
@@ -389,7 +389,7 @@ func (s *OwnershipSharesScreen) showOwnershipDialog(existing *ownership.Ownershi
 
 // confirmDelete підтверджує видалення частки.
 func (s *OwnershipSharesScreen) confirmDelete(share *ownership.OwnershipShareDetailsOutput) {
-	showConfirmDeleteDialog(s.window, fmt.Sprintf("частку власності #%d", share.ID), func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelShareID, share.ID), func() {
 		s.deleteShare(share)
 	})
 }
@@ -409,13 +409,13 @@ func (s *OwnershipSharesScreen) deleteShare(share *ownership.OwnershipShareDetai
 		return
 	}
 
-	common.ShowSuccess(s.window, "Частку власності успішно видалено")
+	common.ShowSuccess(s.window, text.MsgSuccessShareDeleted)
 	s.loadShares()
 }
 
 func currentStatus(isActive bool) string {
 	if isActive {
-		return "✅ Активна зараз"
+		return text.LabelActiveNow
 	}
-	return "❌ Завершена"
+	return text.LabelFinished
 }

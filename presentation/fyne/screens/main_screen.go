@@ -10,6 +10,7 @@ import (
 
 	"osbb-accounting/application/service"
 	"osbb-accounting/presentation/fyne/auth"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // ShowMainScreen будує головний інтерфейс з боковим меню та контентом
@@ -33,10 +34,10 @@ func ShowMainScreen(
 	welcomeLabel := widget.NewLabel("👤 " + user.FullName)
 	welcomeLabel.TextStyle = fyne.TextStyle{Bold: true}
 
-	roleLabel := widget.NewLabel(fmt.Sprintf("Ролі: %v", authManager.GetRoles()))
+	roleLabel := widget.NewLabel(fmt.Sprintf(text.LabelRoles, authManager.GetRoles()))
 	roleLabel.TextStyle = fyne.TextStyle{Italic: true}
 
-	logoutButton := widget.NewButtonWithIcon("Вийти", theme.LogoutIcon(), func() {
+	logoutButton := widget.NewButtonWithIcon(text.NavLogout, theme.LogoutIcon(), func() {
 		authManager.Logout()
 	})
 	logoutButton.Importance = widget.DangerImportance
@@ -63,21 +64,21 @@ func ShowMainScreen(
 	// --- Navigation Menu Definition ---
 	allMenuItems := []MenuItem{
 		{
-			Title: "📊 Головна",
+			Title: text.NavDashboard,
 			Icon:  theme.HomeIcon(),
 			ScreenFunc: func() fyne.CanvasObject {
 				return NewDashboardScreen(window, services.ChargeService, services.PaymentService, authManager).Render()
 			},
 		},
 		{
-			Title: "🏠 Про ОСББ",
+			Title: text.NavOSBB,
 			Icon:  theme.InfoIcon(),
 			ScreenFunc: func() fyne.CanvasObject {
 				return NewOSBBScreen(window, services.OSBBService, authManager).Render()
 			},
 		},
 		{
-			Title:      "👥 Власники",
+			Title:      text.NavOwners,
 			Icon:       theme.AccountIcon(),
 			Permission: "owners.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -85,7 +86,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "🏢 Квартири",
+			Title:      text.NavApartments,
 			Icon:       theme.StorageIcon(),
 			Permission: "apartments.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -93,7 +94,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "📝 Частки власності",
+			Title:      text.NavOwnerships,
 			Icon:       theme.DocumentIcon(),
 			Permission: "ownership.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -101,7 +102,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "💰 Нарахування",
+			Title:      text.NavCharges,
 			Icon:       theme.GridIcon(),
 			Permission: "charges.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -109,7 +110,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "💳 Платежі",
+			Title:      text.NavPayments,
 			Icon:       theme.DocumentPrintIcon(),
 			Permission: "payments.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -117,7 +118,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "🏢 Платежі контрагентів",
+			Title:      text.NavContractorPayments,
 			Icon:       theme.AccountIcon(), // TODO: Better icon
 			Permission: "contractors.read",  // Using contractors permission for now
 			ScreenFunc: func() fyne.CanvasObject {
@@ -125,7 +126,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "💰 Рух коштів",
+			Title:      text.NavCashFlow,
 			Icon:       theme.DocumentSaveIcon(),
 			Permission: "payments.read", // Використовуємо той самий дозвіл як для платежів
 			ScreenFunc: func() fyne.CanvasObject {
@@ -133,7 +134,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "💸 Витрати",
+			Title:      text.NavExpenses,
 			Icon:       theme.ContentRemoveIcon(),
 			Permission: "expenses.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -141,7 +142,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "📂 Категорії витрат",
+			Title:      text.NavExpenseCategories,
 			Icon:       theme.ListIcon(),
 			Permission: "expenses.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -149,7 +150,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title:      "👷 Підрядники",
+			Title:      text.NavContractors,
 			Icon:       theme.FolderIcon(),
 			Permission: "contractors.read",
 			ScreenFunc: func() fyne.CanvasObject {
@@ -157,7 +158,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title: "📥 Імпорт/Експорт",
+			Title: text.NavImportExport,
 			Icon:  theme.DownloadIcon(),
 			ScreenFunc: func() fyne.CanvasObject {
 				userID := authManager.GetCurrentUser().ID
@@ -165,7 +166,7 @@ func ShowMainScreen(
 			},
 		},
 		{
-			Title: "⚙️ Налаштування",
+			Title: text.NavSettings,
 			Icon:  theme.SettingsIcon(),
 			ScreenFunc: func() fyne.CanvasObject {
 				return NewSettingsScreen(window, authManager).Render()
@@ -185,7 +186,7 @@ func ShowMainScreen(
 	menuList := widget.NewList(
 		func() int { return len(visibleMenuItems) },
 		func() fyne.CanvasObject {
-			return container.NewHBox(widget.NewIcon(theme.HomeIcon()), widget.NewLabel("Template"))
+			return container.NewHBox(widget.NewIcon(theme.HomeIcon()), widget.NewLabel(text.LabelTemplate))
 		},
 		func(id widget.ListItemID, item fyne.CanvasObject) {
 			box := item.(*fyne.Container)
@@ -223,7 +224,7 @@ func ShowMainScreen(
 
 func createAccessDeniedPlaceholder() fyne.CanvasObject {
 	icon := widget.NewIcon(theme.WarningIcon())
-	label := widget.NewLabel("Доступ заборонено")
+	label := widget.NewLabel(text.MsgAccessDenied)
 	label.TextStyle = fyne.TextStyle{Bold: true}
 	return container.NewCenter(container.NewVBox(
 		container.NewCenter(icon),

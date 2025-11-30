@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -13,6 +14,7 @@ import (
 	"osbb-accounting/application/usecase/contractor"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // ContractorsScreen - екран списку контрагентів
@@ -43,9 +45,9 @@ type ContractorsScreen struct {
 type ContractorFilterType string
 
 const (
-	ContractorFilterAll      ContractorFilterType = "Всі контрагенти"
-	ContractorFilterActive   ContractorFilterType = "Активні"
-	ContractorFilterInactive ContractorFilterType = "Неактивні"
+	ContractorFilterAll      ContractorFilterType = text.FilterContractorAll
+	ContractorFilterActive   ContractorFilterType = text.FilterContractorActive
+	ContractorFilterInactive ContractorFilterType = text.FilterContractorInactive
 )
 
 // NewContractorsScreen створює новий екран
@@ -68,7 +70,7 @@ func NewContractorsScreen(
 
 func (s *ContractorsScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton("Додати контрагента", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" контрагента", func() {
 		s.showContractorDialog(nil)
 	})
 
@@ -80,13 +82,13 @@ func (s *ContractorsScreen) buildUI() {
 	s.statsLabel = widget.NewLabel("")
 
 	// Filters
-	s.searchEntry = newSearchEntry("Пошук (Назва, ЄДРПОУ)...", func(_ string) { s.applyFilters() })
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(_ string) { s.applyFilters() })
 	s.filterSelect = newFilterSelect([]string{string(ContractorFilterAll), string(ContractorFilterActive), string(ContractorFilterInactive)}, func(value string) { s.applyFilters() })
 
 	// Table
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.filteredContractors) + 1, 6 // +1 for header
+			return len(s.filteredContractors) + 1, len(text.ContractorsTableHeaders) // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -96,9 +98,7 @@ func (s *ContractorsScreen) buildUI() {
 
 			if id.Row == 0 {
 				// Headers
-				renderTableHeader(label,
-					[]string{"Назва", "Тип", "ЄДРПОУ", "Контакт", "Статус", "Дії"},
-					id.Col)
+				renderTableHeader(label, text.ContractorsTableHeaders, id.Col)
 				return
 			}
 
@@ -158,7 +158,9 @@ func (s *ContractorsScreen) Render() fyne.CanvasObject {
 }
 
 func (s *ContractorsScreen) loadContractors() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	input := contractor.ListContractorsInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		Limit:         100,
@@ -246,14 +248,14 @@ func (s *ContractorsScreen) showActionsMenu(rowIndex int) {
 		},
 	}
 
-	common.ShowActionsMenu(s.window, "Дії з контрагентом: "+c.Name, actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleContractorActions, c.Name), actions)
 }
 
 func (s *ContractorsScreen) confirmDelete(c *contractor.ContractorOutput) {
 	common.ShowDeleteConfirmation(
 		s.window,
-		"Підтвердження видалення",
-		"Ви впевнені, що хочете видалити контрагента '"+c.Name+"'?",
+		text.MsgConfirmDeleteTitle,
+		fmt.Sprintf(text.MsgConfirmDeleteBody, fmt.Sprintf(text.LabelContractorName, c.Name)),
 		func() {
 			s.deleteContractor(c.ID)
 		},
@@ -261,7 +263,9 @@ func (s *ContractorsScreen) confirmDelete(c *contractor.ContractorOutput) {
 }
 
 func (s *ContractorsScreen) deleteContractor(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.contractorService.Delete(ctx, contractor.DeleteContractorInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		ContractorID:  id,
@@ -270,7 +274,7 @@ func (s *ContractorsScreen) deleteContractor(id int64) {
 		common.ShowError(s.window, err)
 		return
 	}
-	common.ShowSuccess(s.window, "Контрагента успішно видалено")
+	common.ShowSuccess(s.window, text.MsgSuccessContractorDeleted)
 	s.loadContractors()
 }
 

@@ -2,10 +2,12 @@
 package screens
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"sort"
 	"strconv"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -16,12 +18,13 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/domain/entity"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // ImportScreen екран імпорту/експорту даних.
 type ImportScreen struct {
 	window        fyne.Window
-	importService service.ImportService
+	importService service.ImportServiceInterface
 	userID        int64
 
 	// UI елементи
@@ -35,7 +38,7 @@ type ImportScreen struct {
 }
 
 // NewImportScreen створює новий екран імпорту.
-func NewImportScreen(window fyne.Window, importService service.ImportService, userID int64) *ImportScreen {
+func NewImportScreen(window fyne.Window, importService service.ImportServiceInterface, userID int64) *ImportScreen {
 	screen := &ImportScreen{
 		window:        window,
 		importService: importService,
@@ -52,7 +55,7 @@ func NewImportScreen(window fyne.Window, importService service.ImportService, us
 // buildUI створює інтерфейс екрану.
 func (s *ImportScreen) buildUI() {
 	// Кнопки
-	s.importButton = widget.NewButton("Імпортувати XLSX", s.handleImport)
+	s.importButton = widget.NewButton(text.ActionImportXlsx, s.handleImport)
 	s.refreshButton = newRefreshButton(s.handleRefresh)
 	s.statsLabel = widget.NewLabel("")
 
@@ -74,8 +77,7 @@ func (s *ImportScreen) createBatchesTable() *widget.Table {
 
 			// Заголовки
 			if id.Row == 0 {
-				headers := []string{"ID", "Файл", "Статус", "Аркушів", "Записів", "Дата імпорту", "Дії"}
-				renderTableHeader(label, headers, id.Col)
+				renderTableHeader(label, text.ImportBatchesTableHeaders, id.Col)
 				return
 			}
 
@@ -197,8 +199,11 @@ func (s *ImportScreen) handleImport() {
 		progress.Show()
 
 		go func() {
-			// Виконати імпорт
-			summary, err := s.importService.ImportXLSXFile(filePath, s.userID)
+			// Виконати імпорт з timeout
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			defer cancel()
+
+			summary, err := s.importService.ImportXLSXFile(ctx, filePath, s.userID)
 
 			if err != nil {
 				fyne.Do(func() {
@@ -210,13 +215,7 @@ func (s *ImportScreen) handleImport() {
 
 			// Показати результат
 			message := fmt.Sprintf(
-				"Імпорт завершено!\n\n"+
-					"Файл: %s\n"+
-					"Аркушів: %d\n"+
-					"Записів: %d\n"+
-					"Успішно: %d\n"+
-					"Помилок: %d\n"+
-					"Час: %.2f сек",
+				text.MsgImportCompleted,
 				summary.FileName,
 				summary.TotalSheets,
 				summary.TotalRecords,
@@ -246,9 +245,12 @@ func (s *ImportScreen) handleRefresh() {
 
 // loadBatches завантажує батчі з БД.
 func (s *ImportScreen) loadBatches() {
-	batches, err := s.importService.GetImportBatches()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	batches, err := s.importService.GetImportBatches(ctx)
 	if err != nil {
-		dialog.ShowError(fmt.Errorf("помилка завантаження: %v", err), s.window)
+		dialog.ShowError(fmt.Errorf(text.MsgErrorBatchLoading, err), s.window)
 		return
 	}
 
@@ -265,13 +267,16 @@ func (s *ImportScreen) showActionsMenu(batch *entity.ImportBatch) {
 		func() { s.showFullBatchDetails(batch) },
 	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з батчем #%d", batch.ID), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleBatchActions, batch.ID), actions)
 }
 
 // showFullBatchDetails показує повні деталі батчу з можливістю прокрутки.
 func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 	// Завантажити записи
-	records, err := s.importService.GetImportedRecords(batch.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	records, err := s.importService.GetImportedRecords(ctx, batch.ID)
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("помилка завантаження записів: %v", err), s.window)
 		return
@@ -331,7 +336,7 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 
 	// Якщо немає записів (що дивно), показати пустий контейнер
 	if len(tabs.Items) == 0 {
-		tabs.Append(container.NewTabItem("Немає даних", widget.NewLabel("Немає записів для відображення")))
+		tabs.Append(container.NewTabItem(text.LabelNoData, widget.NewLabel(text.LabelNoRecords)))
 	}
 
 	// Створити контейнер для діалогу
@@ -343,8 +348,8 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 
 	// Показати в діалозі
 	d := dialog.NewCustom(
-		"Деталі імпорту по місяцях",
-		"Закрити",
+		text.TitleImportDetails,
+		text.ActionClose,
 		content,
 		s.window,
 	)
@@ -366,8 +371,7 @@ func (s *ImportScreen) createMonthTable(records []*entity.ImportedMonthlyRecord)
 
 			// Заголовки
 			if id.Row == 0 {
-				headers := []string{"Квартира", "ПІБ", "Період", "Нараховано", "Сплачено", "Борг"}
-				renderTableHeader(label, headers, id.Col)
+				renderTableHeader(label, text.ImportRecordsTableHeaders, id.Col)
 				return
 			}
 
@@ -409,18 +413,14 @@ func (s *ImportScreen) createMonthTable(records []*entity.ImportedMonthlyRecord)
 // confirmDeleteBatch підтверджує видалення батчу.
 func (s *ImportScreen) confirmDeleteBatch(batch *entity.ImportBatch) {
 	message := fmt.Sprintf(
-		"Ви впевнені, що хочете видалити цей імпорт?\n\n"+
-			"Батч #%d\n"+
-			"Файл: %s\n"+
-			"Записів: %d\n\n"+
-			"Це дія незворотна!",
+		text.MsgConfirmDeleteBatch,
 		batch.ID,
 		batch.FileName,
 		batch.TotalRecords,
 	)
 
 	dialog.ShowConfirm(
-		"Підтвердження видалення",
+		text.MsgConfirmDeleteTitle,
 		message,
 		func(confirmed bool) {
 			if confirmed {
@@ -433,15 +433,18 @@ func (s *ImportScreen) confirmDeleteBatch(batch *entity.ImportBatch) {
 
 // deleteBatch видаляє батч.
 func (s *ImportScreen) deleteBatch(batch *entity.ImportBatch) {
-	err := s.importService.DeleteImportBatch(batch.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	err := s.importService.DeleteImportBatch(ctx, batch.ID)
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("помилка видалення: %v", err), s.window)
 		return
 	}
 
 	dialog.ShowInformation(
-		"Успішно видалено",
-		fmt.Sprintf("Батч #%d успішно видалено", batch.ID),
+		text.MsgSuccessTitle,
+		fmt.Sprintf(text.MsgSuccessBatchDeleted, batch.ID),
 		s.window,
 	)
 

@@ -42,26 +42,32 @@ func NewApartmentService(
 	}
 }
 
+// Create створює нову квартиру.
 func (s *ApartmentService) Create(ctx context.Context, input apartment.CreateApartmentInput) (*apartment.ApartmentOutput, error) {
 	return s.createApartment.Execute(ctx, input)
 }
 
+// Get отримує квартиру за ID.
 func (s *ApartmentService) Get(ctx context.Context, input apartment.GetApartmentInput) (*apartment.ApartmentOutput, error) {
 	return s.getApartment.Execute(ctx, input)
 }
 
+// Update оновлює дані квартири.
 func (s *ApartmentService) Update(ctx context.Context, input apartment.UpdateApartmentInput) (*apartment.ApartmentOutput, error) {
 	return s.updateApartment.Execute(ctx, input)
 }
 
+// Delete видаляє квартиру.
 func (s *ApartmentService) Delete(ctx context.Context, input apartment.DeleteApartmentInput) (*apartment.DeleteApartmentOutput, error) {
 	return s.deleteApartment.Execute(ctx, input)
 }
 
+// List отримує список квартир з фільтрацією.
 func (s *ApartmentService) List(ctx context.Context, input apartment.ListApartmentsInput) (*apartment.ListApartmentsOutput, error) {
 	return s.listApartments.Execute(ctx, input)
 }
 
+// GetStatistics отримує статистику по квартирах.
 func (s *ApartmentService) GetStatistics(ctx context.Context, input apartment.GetApartmentStatisticsInput) (*apartment.ApartmentStatisticsOutput, error) {
 	return s.getStatistics.Execute(ctx, input)
 }

@@ -14,6 +14,7 @@ import (
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 type ApartmentsScreen struct {
@@ -40,15 +41,15 @@ type ApartmentsScreen struct {
 type ApartmentFilterType string
 
 const (
-	ApartmentFilterAll       ApartmentFilterType = "Всі квартири"
-	ApartmentFilterEntrance1 ApartmentFilterType = "Перший підїзд"
-	ApartmentFilterEntrance2 ApartmentFilterType = "Другий підїзд"
-	ApartmentFilterEntrance3 ApartmentFilterType = "Третій підїзд"
-	ApartmentFilterEntrance4 ApartmentFilterType = "Четвертий підїзд"
-	ApartmentFilterEntrance5 ApartmentFilterType = "П'ятий підїзд"
-	ApartmentFilterEntrance6 ApartmentFilterType = "Шостий підїзд"
-	ApartmentFilterActive    ApartmentFilterType = "Тільки активні"
-	ApartmentFilterInactive  ApartmentFilterType = "Неактивні"
+	ApartmentFilterAll       ApartmentFilterType = text.FilterApartmentAll
+	ApartmentFilterEntrance1 ApartmentFilterType = text.FilterApartmentEntrance1
+	ApartmentFilterEntrance2 ApartmentFilterType = text.FilterApartmentEntrance2
+	ApartmentFilterEntrance3 ApartmentFilterType = text.FilterApartmentEntrance3
+	ApartmentFilterEntrance4 ApartmentFilterType = text.FilterApartmentEntrance4
+	ApartmentFilterEntrance5 ApartmentFilterType = text.FilterApartmentEntrance5
+	ApartmentFilterEntrance6 ApartmentFilterType = text.FilterApartmentEntrance6
+	ApartmentFilterActive    ApartmentFilterType = text.FilterActive
+	ApartmentFilterInactive  ApartmentFilterType = text.FilterInactive
 )
 
 func NewApartmentsScreen(
@@ -73,7 +74,7 @@ func NewApartmentsScreen(
 // buildUI створює інтерфейс екрану.
 func (s *ApartmentsScreen) buildUI() {
 	// 1. Спочатку ініціалізуємо всі віджети // Filters
-	s.searchEntry = newSearchEntry("Пошук (ПІБ, Номер, Площа)...", func(_ string) { s.applyFilters() })
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(_ string) { s.applyFilters() })
 	s.filterSelect = newFilterSelect([]string{
 		string(ApartmentFilterAll),
 		string(ApartmentFilterEntrance1),
@@ -90,7 +91,7 @@ func (s *ApartmentsScreen) buildUI() {
 		},
 	)
 
-	s.createButton = newCreateButton("Додати квартиру", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" квартиру", func() {
 		s.showApartmentDialog(nil)
 	})
 
@@ -111,7 +112,7 @@ func (s *ApartmentsScreen) buildUI() {
 func (s *ApartmentsScreen) buildTable() {
 	s.apartmentsTable = widget.NewTable(
 		func() (int, int) {
-			return len(s.filteredApartments) + 1, 6 // +1 для заголовків, 6 колонок
+			return len(s.filteredApartments) + 1, len(text.ApartmentsTableHeaders) // +1 для заголовків, 6 колонок
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -120,9 +121,8 @@ func (s *ApartmentsScreen) buildTable() {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
-				// Заголовки
-				renderTableHeader(label,
-					[]string{"№", "ПІБ", "Номер", "Жила площа", "Підїзд", "Дії"}, id.Col)
+				// Заголовки "№", "ПІБ", "Номер", "Жила площа", "Підїзд", "Дії"
+				renderTableHeader(label, text.ApartmentsTableHeaders, id.Col)
 				return
 			}
 
@@ -253,7 +253,7 @@ func (s *ApartmentsScreen) loadApartments() {
 	})
 
 	if err != nil {
-		common.ShowError(s.window, fmt.Errorf("Помилка завантаження квартир: %v", err))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorLoading, err))
 		return
 	}
 
@@ -315,14 +315,7 @@ func (s *ApartmentsScreen) applyFilters() {
 // showApartmentDetails показує детальну інформацію про квартиру.
 func (s *ApartmentsScreen) showApartmentDetails(a *apartment.ApartmentOutput) {
 	details := fmt.Sprintf(
-		"Квартира: №%s\n"+
-			"Поверх: %d\n"+
-			"Під'їзд: %s\n\n"+
-			"Площа: %.2f м²\n"+
-			"Жила площа: %s\n"+
-			"Кількість кімнат: %s\n"+
-			"Кадастровий номер: %s\n"+
-			"Статус: %s\n",
+		text.MsgApartmentDetails,
 		a.ApartmentNumber,
 		a.Floor,
 		ptrIntToString(a.Entrance, "не вказано"),
@@ -337,7 +330,7 @@ func (s *ApartmentsScreen) showApartmentDetails(a *apartment.ApartmentOutput) {
 		details += fmt.Sprintf("\nПримітки: %s\n", *a.Notes)
 	}
 
-	common.ShowInformation(s.window, "Інформація про квартиру", details)
+	common.ShowInformation(s.window, text.TitleApartmentDetails, details)
 }
 
 // showActionsMenu показує меню дій з власником.
@@ -348,7 +341,7 @@ func (s *ApartmentsScreen) showActionsMenu(a *apartment.ApartmentOutput) {
 		func() { s.showApartmentDetails(a) },
 	)
 
-	common.ShowActionsMenu(s.window, fmt.Sprintf("Дії з квартирою № %s", a.ApartmentNumber), actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleApartmentActions, a.ApartmentNumber), actions)
 }
 
 // showApartmentDialog показує діалог створення/редагування квартири.
@@ -367,7 +360,7 @@ func (s *ApartmentsScreen) showApartmentDialog(existing *apartment.ApartmentOutp
 
 // confirmDelete підтверджує видалення.
 func (s *ApartmentsScreen) confirmDelete(a *apartment.ApartmentOutput) {
-	showConfirmDeleteDialog(s.window, fmt.Sprintf("квартиру №%s", a.ApartmentNumber), func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelApartmentNumber, a.ApartmentNumber), func() {
 		s.deleteApartment(a)
 	})
 }
@@ -383,10 +376,10 @@ func (s *ApartmentsScreen) deleteApartment(a *apartment.ApartmentOutput) {
 	})
 
 	if err != nil {
-		common.ShowError(s.window, fmt.Errorf("Помилка видалення: %v", err))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorDeleting, err))
 		return
 	}
 
-	common.ShowSuccess(s.window, fmt.Sprintf("Квартиру №%s успішно видалено", a.ApartmentNumber))
+	common.ShowSuccess(s.window, fmt.Sprintf(text.MsgSuccessDeleted, fmt.Sprintf(text.LabelApartmentNumber, a.ApartmentNumber)))
 	s.loadApartments()
 }

@@ -3,6 +3,7 @@ package screens
 import (
 	"context"
 	"errors"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -15,6 +16,7 @@ import (
 	domainErrors "osbb-accounting/domain/errors"
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 type OSBBScreen struct {
@@ -39,7 +41,9 @@ func (s *OSBBScreen) Render() fyne.CanvasObject {
 }
 
 func (s *OSBBScreen) refreshData() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	userID := s.authManager.GetCurrentUser().ID
 
 	data, err := s.service.Get(ctx, osbb.GetOSBBInput{CurrentUserID: userID})
@@ -103,35 +107,35 @@ func (s *OSBBScreen) showCreateView() {
 
 func (s *OSBBScreen) showDetailsView(data *osbb.GetOSBBOutput) {
 	// Header
-	title := widget.NewLabel("Інформація про ОСББ")
+	title := widget.NewLabel(text.TitleOSBBInfo)
 	title.TextStyle = fyne.TextStyle{Bold: true, Monospace: true} // Larger?
 
 	// Details Form
 	form := widget.NewForm(
-		widget.NewFormItem("Назва", widget.NewLabel(data.Name)),
-		widget.NewFormItem("ЄДРПОУ", widget.NewLabel(data.EDRPOU)),
-		widget.NewFormItem("Юридична адреса", widget.NewLabel(data.LegalAddress)),
-		widget.NewFormItem("Голова правління", widget.NewLabel(data.ChairmanName)),
+		widget.NewFormItem(text.LabelOSBBName, widget.NewLabel(data.Name)),
+		widget.NewFormItem(text.LabelOSBBEDRPOU, widget.NewLabel(data.EDRPOU)),
+		widget.NewFormItem(text.LabelOSBBAddress, widget.NewLabel(data.LegalAddress)),
+		widget.NewFormItem(text.LabelOSBBChairman, widget.NewLabel(data.ChairmanName)),
 	)
 
 	if data.ActualAddress != nil {
-		form.Append("Фактична адреса", widget.NewLabel(*data.ActualAddress))
+		form.Append(text.LabelOSBBActualAddr, widget.NewLabel(*data.ActualAddress))
 	}
 	if data.Phone != nil {
-		form.Append("Телефон", widget.NewLabel(*data.Phone))
+		form.Append(text.LabelOSBBPhone, widget.NewLabel(*data.Phone))
 	}
 	if data.Email != nil {
-		form.Append("Email", widget.NewLabel(*data.Email))
+		form.Append(text.LabelOSBBEmail, widget.NewLabel(*data.Email))
 	}
 	if data.Website != nil {
-		form.Append("Веб-сайт", widget.NewLabel(*data.Website)) // Make it a link?
+		form.Append(text.LabelOSBBWebsite, widget.NewLabel(*data.Website)) // Make it a link?
 	}
 
 	// Toolbar
 	toolbar := container.NewHBox()
 
 	if s.authManager.HasPermission("system.all") {
-		editBtn := widget.NewButtonWithIcon("Редагувати", theme.DocumentCreateIcon(), func() {
+		editBtn := widget.NewButtonWithIcon(text.ActionEdit, theme.DocumentCreateIcon(), func() {
 			dialogs.ShowOSBBFormDialog(s.window, s.service, s.authManager, data, func() {
 				s.refreshData()
 			})
@@ -139,7 +143,7 @@ func (s *OSBBScreen) showDetailsView(data *osbb.GetOSBBOutput) {
 		toolbar.Add(editBtn)
 	}
 
-	refreshBtn := widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), func() {
+	refreshBtn := widget.NewButtonWithIcon(text.ActionRefresh, theme.ViewRefreshIcon(), func() {
 		s.refreshData()
 	})
 	toolbar.Add(refreshBtn)

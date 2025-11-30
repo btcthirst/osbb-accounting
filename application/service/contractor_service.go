@@ -42,26 +42,32 @@ func NewContractorService(
 	}
 }
 
+// Create створює нового контрагента.
 func (s *ContractorService) Create(ctx context.Context, input contractor.CreateContractorInput) (*contractor.ContractorOutput, error) {
 	return s.createContractor.Execute(ctx, input)
 }
 
+// Get отримує контрагента за ID.
 func (s *ContractorService) Get(ctx context.Context, input contractor.GetContractorInput) (*contractor.ContractorOutput, error) {
 	return s.getContractor.Execute(ctx, input)
 }
 
+// Update оновлює дані контрагента.
 func (s *ContractorService) Update(ctx context.Context, input contractor.UpdateContractorInput) (*contractor.ContractorOutput, error) {
 	return s.updateContractor.Execute(ctx, input)
 }
 
+// Delete видаляє контрагента.
 func (s *ContractorService) Delete(ctx context.Context, input contractor.DeleteContractorInput) (*contractor.DeleteContractorOutput, error) {
 	return s.deleteContractor.Execute(ctx, input)
 }
 
+// List отримує список контрагентів з фільтрацією.
 func (s *ContractorService) List(ctx context.Context, input contractor.ListContractorsInput) (*contractor.ListContractorsOutput, error) {
 	return s.listContractors.Execute(ctx, input)
 }
 
+// Search шукає контрагентів (для autocomplete).
 func (s *ContractorService) Search(ctx context.Context, input contractor.SearchContractorsInput) ([]*contractor.ContractorOutput, error) {
 	return s.searchContractors.Execute(ctx, input)
 }

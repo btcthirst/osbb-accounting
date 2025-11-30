@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // ptrToString safely dereferences a string pointer
@@ -46,9 +47,9 @@ func contains(s, substr string) bool {
 // activeStatus returns a formatted string for active/inactive status
 func activeStatus(isActive bool) string {
 	if isActive {
-		return "✅ Активний"
+		return text.ActiveStatus
 	}
-	return "❌ Неактивний"
+	return text.InactiveStatus
 }
 
 // ptrTimeToString safely dereferences a time pointer
@@ -122,8 +123,8 @@ func buildStandardLayout(toolbar *fyne.Container, table *widget.Table, statsLabe
 func showConfirmDeleteDialog(window fyne.Window, entityName string, onDelete func()) {
 	common.ShowDeleteConfirmation(
 		window,
-		"Підтвердження видалення",
-		fmt.Sprintf("Ви впевнені, що хочете видалити %s?", entityName),
+		text.MsgConfirmDeleteTitle,
+		fmt.Sprintf(text.MsgConfirmDeleteBody, entityName),
 		onDelete,
 	)
 }
@@ -134,14 +135,14 @@ func buildStandardActions(onEdit func(), onDelete func(), onDetails func()) []co
 
 	if onEdit != nil {
 		actions = append(actions, common.Action{
-			Label: "✏️ Редагувати",
+			Label: text.ActionEdit,
 			OnTap: onEdit,
 		})
 	}
 
 	if onDelete != nil {
 		actions = append(actions, common.Action{
-			Label:      "🗑️ Видалити",
+			Label:      text.ActionDelete,
 			OnTap:      onDelete,
 			Importance: widget.DangerImportance,
 		})
@@ -149,7 +150,7 @@ func buildStandardActions(onEdit func(), onDelete func(), onDetails func()) []co
 
 	if onDetails != nil {
 		actions = append(actions, common.Action{
-			Label: "ℹ️ Деталі",
+			Label: text.ActionDetails,
 			OnTap: onDetails,
 		})
 	}

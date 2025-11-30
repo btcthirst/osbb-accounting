@@ -6,7 +6,7 @@ import (
 	"osbb-accounting/domain/repository"
 )
 
-type ExpenseCategoryServiceI interface {
+type ExpenseCategoryServiceInterface interface {
 	Create(ctx context.Context, input expense_category.CreateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
 	Update(ctx context.Context, input expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
 	Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error)
@@ -44,34 +44,42 @@ func NewExpenseCategoryService(
 	}
 }
 
+// Create створює нову категорію витрат.
 func (s *ExpenseCategoryService) Create(ctx context.Context, input expense_category.CreateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error) {
 	return s.createExpenseCategory.Execute(ctx, input)
 }
 
+// Update оновлює дані категорії витрат.
 func (s *ExpenseCategoryService) Update(ctx context.Context, input expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error) {
 	return s.updateExpenseCategory.Execute(ctx, input)
 }
 
+// Delete видаляє категорію витрат.
 func (s *ExpenseCategoryService) Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error) {
 	return s.deleteExpenseCategory.Execute(ctx, input)
 }
 
+// GetCategoryPath отримує шлях категорії (від кореня).
 func (s *ExpenseCategoryService) GetCategoryPath(ctx context.Context, input expense_category.GetCategoryPathInput) (*expense_category.CategoryPathOutput, error) {
 	return s.getCategoryPath.Execute(ctx, input)
 }
 
+// GetCategoryTree отримує дерево категорій.
 func (s *ExpenseCategoryService) GetCategoryTree(ctx context.Context, input expense_category.GetCategoryTreeInput) ([]*expense_category.ExpenseCategoryTreeOutput, error) {
 	return s.getCategoryTree.Execute(ctx, input)
 }
 
+// Get отримує категорію витрат за ID.
 func (s *ExpenseCategoryService) Get(ctx context.Context, input expense_category.GetExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error) {
 	return s.getExpenseCategory.Execute(ctx, input)
 }
 
+// List отримує список категорій витрат з фільтрацією.
 func (s *ExpenseCategoryService) List(ctx context.Context, input expense_category.ListExpenseCategoriesInput) (*expense_category.ListExpenseCategoriesOutput, error) {
 	return s.listExpenseCategories.Execute(ctx, input)
 }
 
+// MoveCategory переміщує категорію до іншого батьківського вузла.
 func (s *ExpenseCategoryService) MoveCategory(ctx context.Context, input expense_category.MoveCategoryInput) (*expense_category.ExpenseCategoryOutput, error) {
 	return s.moveCategory.Execute(ctx, input)
 }

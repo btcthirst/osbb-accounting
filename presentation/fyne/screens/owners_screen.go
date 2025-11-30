@@ -15,6 +15,7 @@ import (
 	"osbb-accounting/presentation/fyne/auth"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // OwnersScreen представляє екран управління власниками.
@@ -42,13 +43,13 @@ type OwnersScreen struct {
 type OwnerFilterType string
 
 const (
-	OwnerFilterAll          OwnerFilterType = "Всі власники"
-	OwnerFilterWithTax      OwnerFilterType = "Тільки з ІПН"
-	OwnerFilterNoTax        OwnerFilterType = "Без ІПН"
-	OwnerFilterWithContacts OwnerFilterType = "Тільки з контактами"
-	OwnerFilterNoContacts   OwnerFilterType = "Без контактів"
-	OwnerFilterActive       OwnerFilterType = "Тільки активні"
-	OwnerFilterInactive     OwnerFilterType = "Неактивні"
+	OwnerFilterAll          OwnerFilterType = text.FilterOwnerAll
+	OwnerFilterWithTax      OwnerFilterType = text.FilterOwnerWithTax
+	OwnerFilterNoTax        OwnerFilterType = text.FilterOwnerNoTax
+	OwnerFilterWithContacts OwnerFilterType = text.FilterOwnerWithContacts
+	OwnerFilterNoContacts   OwnerFilterType = text.FilterOwnerNoContacts
+	OwnerFilterActive       OwnerFilterType = text.FilterOwnerActive
+	OwnerFilterInactive     OwnerFilterType = text.FilterOwnerInactive
 )
 
 // NewOwnersScreen створює новий екран власників.
@@ -74,7 +75,7 @@ func NewOwnersScreen(
 // buildUI створює інтерфейс екрану.
 func (s *OwnersScreen) buildUI() {
 	// Пошук
-	s.searchEntry = newSearchEntry("🔍 Пошук за ПІБ, телефоном, email...", func(query string) {
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(query string) {
 		s.applyFilters()
 	})
 
@@ -93,7 +94,7 @@ func (s *OwnersScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = newCreateButton("Додати власника", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" власника", func() {
 		s.showCreateDialog()
 	})
 
@@ -126,8 +127,7 @@ func (s *OwnersScreen) buildTable() {
 
 			if id.Row == 0 {
 				// Заголовки
-				renderTableHeader(label,
-					[]string{"№", "ПІБ", "Телефон", "Email", "ІПН", "Дії"}, id.Col)
+				renderTableHeader(label, text.OwnersTableHeaders, id.Col)
 				return
 			}
 
@@ -250,7 +250,7 @@ func (s *OwnersScreen) loadOwners() {
 	})
 
 	if err != nil {
-		common.ShowError(s.window, fmt.Errorf("Помилка завантаження власників: %v", err))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorOwnerLoading, err))
 		return
 	}
 
@@ -335,7 +335,7 @@ func (s *OwnersScreen) showOwnerDetails(o *owner.OwnerOutput) {
 		details += fmt.Sprintf("\nПримітки: %s\n", *o.Notes)
 	}
 
-	common.ShowInformation(s.window, "Інформація про власника", details)
+	common.ShowInformation(s.window, text.TitleOwnerDetails, details)
 }
 
 // showActionsMenu показує меню дій з власником.
@@ -346,7 +346,7 @@ func (s *OwnersScreen) showActionsMenu(o *owner.OwnerOutput) {
 		func() { s.showOwnerDetails(o) },
 	)
 
-	common.ShowActionsMenu(s.window, "Дії з власником: "+o.FullName, actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleOwnerActions, o.FullName), actions)
 }
 
 // showCreateDialog показує діалог створення власника.
@@ -370,7 +370,7 @@ func (s *OwnersScreen) showOwnerDialog(existing *owner.OwnerOutput) {
 
 // confirmDelete підтверджує видалення.
 func (s *OwnersScreen) confirmDelete(o *owner.OwnerOutput) {
-	showConfirmDeleteDialog(s.window, fmt.Sprintf("власника %s", o.FullName), func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelOwnerName, o.FullName), func() {
 		s.deleteOwner(o)
 	})
 }
@@ -390,6 +390,6 @@ func (s *OwnersScreen) deleteOwner(o *owner.OwnerOutput) {
 		return
 	}
 
-	common.ShowSuccess(s.window, fmt.Sprintf("Власник '%s' успішно видалено", o.FullName))
+	common.ShowSuccess(s.window, fmt.Sprintf(text.MsgSuccessOwnerDeleted, o.FullName))
 	s.loadOwners()
 }

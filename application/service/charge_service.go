@@ -41,26 +41,32 @@ func NewChargeService(
 	}
 }
 
+// Create створює нове нарахування.
 func (s *ChargeService) Create(ctx context.Context, input charge.CreateChargeInput) (*charge.ChargeOutput, error) {
 	return s.createCharge.Execute(ctx, input)
 }
 
+// Get отримує нарахування за ID.
 func (s *ChargeService) Get(ctx context.Context, input charge.GetChargeInput) (*charge.ChargeOutput, error) {
 	return s.getCharge.Execute(ctx, input)
 }
 
+// Update оновлює дані нарахування.
 func (s *ChargeService) Update(ctx context.Context, input charge.UpdateChargeInput) (*charge.ChargeOutput, error) {
 	return s.updateCharge.Execute(ctx, input)
 }
 
+// Delete видаляє нарахування.
 func (s *ChargeService) Delete(ctx context.Context, input charge.DeleteChargeInput) (*charge.DeleteChargeOutput, error) {
 	return s.deleteCharge.Execute(ctx, input)
 }
 
+// List отримує список нарахувань з фільтрацією.
 func (s *ChargeService) List(ctx context.Context, input charge.ListChargesInput) (*charge.ListChargesOutput, error) {
 	return s.listCharges.Execute(ctx, input)
 }
 
+// GetStatistics отримує статистику по нарахуванням.
 func (s *ChargeService) GetStatistics(ctx context.Context, input charge.GetChargeStatisticsInput) (*repository.ChargeStatistics, error) {
 	return s.getStatistics.Execute(ctx, input)
 }

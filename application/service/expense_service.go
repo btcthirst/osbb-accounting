@@ -45,6 +45,7 @@ func NewExpenseService(
 }
 
 // Create creates a new expense
+// Create створює нову витрату.
 func (s *ExpenseService) Create(ctx context.Context, input expense.CreateExpenseInput) (*expense.ExpenseOutput, error) {
 	// 1. Check permissions
 	if err := s.checkPermission(ctx, input.CurrentUserID, "expenses.create"); err != nil {
@@ -81,6 +82,7 @@ func (s *ExpenseService) Create(ctx context.Context, input expense.CreateExpense
 }
 
 // Update updates an existing expense
+// Update оновлює дані витрати.
 func (s *ExpenseService) Update(ctx context.Context, input expense.UpdateExpenseInput) (*expense.ExpenseOutput, error) {
 	// 1. Check permissions
 	if err := s.checkPermission(ctx, input.CurrentUserID, "expenses.update"); err != nil {
@@ -154,6 +156,7 @@ func (s *ExpenseService) Get(ctx context.Context, id int64) (*expense.ExpenseOut
 }
 
 // List lists expenses
+// List отримує список витрат з фільтрацією.
 func (s *ExpenseService) List(ctx context.Context, input expense.ListExpensesInput) (*expense.ListExpensesOutput, error) {
 	// 1. Check permissions
 	if err := s.checkPermission(ctx, input.CurrentUserID, "expenses.read"); err != nil {

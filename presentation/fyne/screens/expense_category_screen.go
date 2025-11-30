@@ -4,6 +4,7 @@ package screens
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/widget"
@@ -12,6 +13,7 @@ import (
 	"osbb-accounting/application/usecase/expense_category"
 	"osbb-accounting/presentation/fyne/common"
 	"osbb-accounting/presentation/fyne/dialogs"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // ExpenseCategoryScreen - екран списку категорій витрат
@@ -42,9 +44,9 @@ type ExpenseCategoryScreen struct {
 type ExpenseCategoryFilterType string
 
 const (
-	ExpenseCategoryFilterAll      ExpenseCategoryFilterType = "Всі категорії"
-	ExpenseCategoryFilterActive   ExpenseCategoryFilterType = "Активні"
-	ExpenseCategoryFilterInactive ExpenseCategoryFilterType = "Неактивні"
+	ExpenseCategoryFilterAll      ExpenseCategoryFilterType = text.FilterCategoryAll
+	ExpenseCategoryFilterActive   ExpenseCategoryFilterType = text.FilterCategoryActive
+	ExpenseCategoryFilterInactive ExpenseCategoryFilterType = text.FilterCategoryInactive
 )
 
 // NewExpenseCategoryScreen створює новий екран
@@ -67,7 +69,7 @@ func NewExpenseCategoryScreen(
 
 func (s *ExpenseCategoryScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton("Додати категорію", func() {
+	s.createButton = newCreateButton(text.ActionAdd+" категорію", func() {
 		s.showCategoryDialog(nil)
 	})
 
@@ -76,7 +78,7 @@ func (s *ExpenseCategoryScreen) buildUI() {
 	})
 
 	// Filters
-	s.searchEntry = newSearchEntry("Пошук (Назва)...", func(_ string) { s.applyFilters() })
+	s.searchEntry = newSearchEntry(text.SearchPlaceholder, func(_ string) { s.applyFilters() })
 	s.filterSelect = newFilterSelect([]string{string(ExpenseCategoryFilterAll), string(ExpenseCategoryFilterActive), string(ExpenseCategoryFilterInactive)}, func(_ string) { s.applyFilters() })
 
 	s.statsLabel = widget.NewLabel("")
@@ -93,8 +95,7 @@ func (s *ExpenseCategoryScreen) buildUI() {
 
 			if id.Row == 0 {
 				// Headers
-				renderTableHeader(label,
-					[]string{"Назва", "Тип", "Опис", "Статус", "Дії"}, id.Col)
+				renderTableHeader(label, text.ExpenseCategoriesTableHeaders, id.Col)
 				return
 			}
 
@@ -152,7 +153,9 @@ func (s *ExpenseCategoryScreen) Render() fyne.CanvasObject {
 }
 
 func (s *ExpenseCategoryScreen) loadCategories() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	input := expense_category.ListExpenseCategoriesInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		Limit:         100,
@@ -161,7 +164,7 @@ func (s *ExpenseCategoryScreen) loadCategories() {
 
 	output, err := s.categoryService.List(ctx, input)
 	if err != nil {
-		common.ShowError(s.window, err)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorCategoryLoading, err))
 		return
 	}
 
@@ -195,26 +198,28 @@ func (s *ExpenseCategoryScreen) showActionsMenu(rowIndex int) {
 		nil,
 	)
 
-	common.ShowActionsMenu(s.window, "Дії з категорією: "+c.Name, actions)
+	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleCategoryActions, c.Name), actions)
 }
 
 func (s *ExpenseCategoryScreen) confirmDelete(c *expense_category.ExpenseCategoryOutput) {
-	showConfirmDeleteDialog(s.window, "категорію '"+c.Name+"'", func() {
+	showConfirmDeleteDialog(s.window, fmt.Sprintf(text.LabelCategoryName, c.Name), func() {
 		s.deleteCategory(c.ID)
 	})
 }
 
 func (s *ExpenseCategoryScreen) deleteCategory(id int64) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	_, err := s.categoryService.Delete(ctx, expense_category.DeleteExpenseCategoryInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		CategoryID:    id,
 	})
 	if err != nil {
-		common.ShowError(s.window, err)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorDeleting, err))
 		return
 	}
-	common.ShowSuccess(s.window, "Категорію успішно видалено")
+	common.ShowSuccess(s.window, text.MsgSuccessCategoryDeleted)
 	s.loadCategories()
 }
 

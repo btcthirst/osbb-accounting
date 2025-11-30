@@ -1,6 +1,8 @@
 package screens
 
 import (
+	"osbb-accounting/presentation/fyne/text"
+
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -16,7 +18,7 @@ func newCreateButton(label string, onTap func()) *widget.Button {
 
 // newRefreshButton creates a standard "Refresh" button
 func newRefreshButton(onTap func()) *widget.Button {
-	return widget.NewButtonWithIcon("Оновити", theme.ViewRefreshIcon(), onTap)
+	return widget.NewButtonWithIcon(text.ActionRefresh, theme.ViewRefreshIcon(), onTap)
 }
 
 // UI Input Helpers
@@ -25,7 +27,7 @@ func newRefreshButton(onTap func()) *widget.Button {
 func newSearchEntry(placeholder string, onChanged func(string)) *widget.Entry {
 	entry := widget.NewEntry()
 	if placeholder == "" {
-		placeholder = "🔍 Пошук..."
+		placeholder = text.SearchPlaceholder
 	}
 	entry.SetPlaceHolder(placeholder)
 	if onChanged != nil {

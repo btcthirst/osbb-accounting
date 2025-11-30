@@ -11,3 +11,10 @@
 
 1. UI екран з таблицею та фільтрами (add search/change table format)
 2. Функція експорту в XLSX (change table format)
+
+
+приведи всі екрани максимально до структури ApartmentsScreen щоб вони відповідали
+- Uses `context.WithTimeout`.
+    - Implements full filtering (Search + Dropdown).
+    - Handles `nil` pointers safely in display logic (`ptrToString` helpers).
+    - Has a clear structure.

@@ -12,6 +12,12 @@ import (
 	"osbb-accounting/domain/repository"
 )
 
+// CashFlowServiceInterface defines the contract for cash flow operations.
+type CashFlowServiceInterface interface {
+	List(ctx context.Context, input cashflow.ListCashFlowInput) (*cashflow.ListCashFlowOutput, error)
+	ExportToXLSX(ctx context.Context, input cashflow.ListCashFlowInput, osbbName string) (*excelize.File, string, error)
+}
+
 // CashFlowService - сервісний шар для роботи з рухом коштів
 type CashFlowService struct {
 	cashFlowUseCase *cashflow.CashFlowUseCase
@@ -47,7 +53,7 @@ func NewCashFlowService(
 	}
 }
 
-// List отримує список операцій руху коштів з додатковою інформацією
+// List отримує список операцій руху коштів з додатковою інформацією.
 func (s *CashFlowService) List(ctx context.Context, input cashflow.ListCashFlowInput) (*cashflow.ListCashFlowOutput, error) {
 	output, err := s.cashFlowUseCase.List(ctx, input)
 	if err != nil {
@@ -197,7 +203,7 @@ func (s *CashFlowService) getContractorInfo(ctx context.Context, contractorID *i
 	return contractor.Name
 }
 
-// ExportToXLSX експортує дані руху коштів в XLSX файл
+// ExportToXLSX експортує дані руху коштів в XLSX файл.
 func (s *CashFlowService) ExportToXLSX(ctx context.Context, input cashflow.ListCashFlowInput, osbbName string) (*excelize.File, string, error) {
 	// Отримуємо дані
 	output, err := s.List(ctx, input)

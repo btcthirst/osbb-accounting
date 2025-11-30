@@ -4,6 +4,7 @@ package screens
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -14,6 +15,7 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/charge"
 	"osbb-accounting/application/usecase/payment"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // DashboardScreen - головний екран з дашбордом
@@ -64,9 +66,9 @@ func (s *DashboardScreen) buildUI() {
 	s.outstandingDebtLabel = widget.NewLabelWithStyle("0.00 грн", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 
 	summaryCard := container.NewGridWithColumns(3,
-		s.createSummaryCard("Нараховано (всього)", s.totalChargesLabel, theme.ColorNamePrimary),
-		s.createSummaryCard("Сплачено (всього)", s.totalPaymentsLabel, theme.ColorNameSuccess),
-		s.createSummaryCard("Заборгованість", s.outstandingDebtLabel, theme.ColorNameError),
+		s.createSummaryCard(text.LabelTotalCharges, s.totalChargesLabel, theme.ColorNamePrimary),
+		s.createSummaryCard(text.LabelTotalPayments, s.totalPaymentsLabel, theme.ColorNameSuccess),
+		s.createSummaryCard(text.LabelOutstandingDebt, s.outstandingDebtLabel, theme.ColorNameError),
 	)
 
 	// 2. Statistics Details
@@ -74,18 +76,18 @@ func (s *DashboardScreen) buildUI() {
 	s.chargeTypesContainer = container.NewVBox()
 
 	detailsContainer := container.NewGridWithColumns(2,
-		widget.NewCard("Методи оплати", "", s.paymentMethodsContainer),
-		widget.NewCard("Типи нарахувань", "", s.chargeTypesContainer),
+		widget.NewCard(text.TitlePaymentMethods, "", s.paymentMethodsContainer),
+		widget.NewCard(text.TitleChargeTypes, "", s.chargeTypesContainer),
 	)
 
 	// Refresh Button
-	refreshBtn := widget.NewButtonWithIcon("Оновити дані", theme.ViewRefreshIcon(), func() {
+	refreshBtn := widget.NewButtonWithIcon(text.ActionRefresh+" дані", theme.ViewRefreshIcon(), func() {
 		s.loadStatistics()
 	})
 
 	// Layout
 	s.content = container.NewVBox(
-		widget.NewLabelWithStyle("Огляд фінансів", fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
+		widget.NewLabelWithStyle(text.TitleFinanceOverview, fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true}),
 		summaryCard,
 		widget.NewSeparator(),
 		detailsContainer,
@@ -118,7 +120,8 @@ func (s *DashboardScreen) Render() fyne.CanvasObject {
 }
 
 func (s *DashboardScreen) loadStatistics() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	userID := s.authManager.GetCurrentUserID()
 
 	// 1. Charge Statistics
@@ -155,10 +158,10 @@ func (s *DashboardScreen) loadStatistics() {
 
 		// Payment Methods
 		s.paymentMethodsContainer.Objects = nil
-		s.paymentMethodsContainer.Add(s.createStatRow("Готівка", paymentStats.AmountByCash, paymentStats.TotalAmount))
-		s.paymentMethodsContainer.Add(s.createStatRow("Картка", paymentStats.AmountByCard, paymentStats.TotalAmount))
-		s.paymentMethodsContainer.Add(s.createStatRow("Банк", paymentStats.AmountByBankTransfer, paymentStats.TotalAmount))
-		s.paymentMethodsContainer.Add(s.createStatRow("Інше", paymentStats.AmountByOther, paymentStats.TotalAmount))
+		s.paymentMethodsContainer.Add(s.createStatRow(text.LabelMethodCash, paymentStats.AmountByCash, paymentStats.TotalAmount))
+		s.paymentMethodsContainer.Add(s.createStatRow(text.LabelMethodCard, paymentStats.AmountByCard, paymentStats.TotalAmount))
+		s.paymentMethodsContainer.Add(s.createStatRow(text.LabelMethodBank, paymentStats.AmountByBankTransfer, paymentStats.TotalAmount))
+		s.paymentMethodsContainer.Add(s.createStatRow(text.LabelMethodOther, paymentStats.AmountByOther, paymentStats.TotalAmount))
 		s.paymentMethodsContainer.Refresh()
 
 		// Charge Types

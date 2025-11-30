@@ -14,5 +14,5 @@ type ServiceContainer struct {
 	ContractorService        *ContractorService
 	CashFlowService          *CashFlowService
 	OSBBService              *OSBBService
-	ImportService            ImportService
+	ImportService            ImportServiceInterface
 }

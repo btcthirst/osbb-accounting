@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 
 	"osbb-accounting/application/usecase/auth"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // SettingsScreen - екран налаштувань
@@ -39,21 +40,21 @@ func (s *SettingsScreen) Render() fyne.CanvasObject {
 	user := s.authManager.GetCurrentUser()
 
 	// 1. User Profile Section
-	profileCard := widget.NewCard("Профіль користувача", "", container.NewVBox(
-		widget.NewLabel(fmt.Sprintf("Ім'я: %s", user.FullName)),
-		widget.NewLabel(fmt.Sprintf("Логін: %s", user.Username)),
-		widget.NewLabel(fmt.Sprintf("Email: %s", user.Email)),
-		widget.NewLabel(fmt.Sprintf("Ролі: %v", s.authManager.(interface{ GetRoles() []string }).GetRoles())),
-		widget.NewButtonWithIcon("Вийти з системи", theme.LogoutIcon(), func() {
+	profileCard := widget.NewCard(text.TitleUserProfile, "", container.NewVBox(
+		widget.NewLabel(fmt.Sprintf(text.LabelName, user.FullName)),
+		widget.NewLabel(fmt.Sprintf(text.LabelLogin, user.Username)),
+		widget.NewLabel(fmt.Sprintf(text.LabelEmail, user.Email)),
+		widget.NewLabel(fmt.Sprintf(text.LabelRoles, s.authManager.(interface{ GetRoles() []string }).GetRoles())),
+		widget.NewButtonWithIcon(text.ActionLogout, theme.LogoutIcon(), func() {
 			s.authManager.Logout()
 		}),
 	))
 
 	// 2. App Info Section
-	appInfoCard := widget.NewCard("Про програму", "", container.NewVBox(
-		widget.NewLabel("OSBB Accounting System"),
-		widget.NewLabel("Версія: 1.0.0"),
-		widget.NewLabel("Розробник: Google Deepmind Team"),
+	appInfoCard := widget.NewCard(text.TitleAppInfo, "", container.NewVBox(
+		widget.NewLabel(text.LabelAppName),
+		widget.NewLabel(text.LabelAppVersion),
+		widget.NewLabel(text.LabelAppDeveloper),
 	))
 
 	// Layout

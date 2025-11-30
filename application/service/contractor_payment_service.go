@@ -38,22 +38,27 @@ func NewContractorPaymentService(
 	}
 }
 
+// Create створює новий платіж контрагенту.
 func (s *ContractorPaymentService) Create(ctx context.Context, input contractorpayment.CreateContractorPaymentInput) (*contractorpayment.ContractorPaymentOutput, error) {
 	return s.createPayment.Execute(ctx, input)
 }
 
+// Get отримує платіж контрагенту за ID.
 func (s *ContractorPaymentService) Get(ctx context.Context, input contractorpayment.GetContractorPaymentInput) (*contractorpayment.ContractorPaymentOutput, error) {
 	return s.getPayment.Execute(ctx, input)
 }
 
+// Update оновлює дані платежу контрагенту.
 func (s *ContractorPaymentService) Update(ctx context.Context, input contractorpayment.UpdateContractorPaymentInput) (*contractorpayment.ContractorPaymentOutput, error) {
 	return s.updatePayment.Execute(ctx, input)
 }
 
+// Delete видаляє платіж контрагенту.
 func (s *ContractorPaymentService) Delete(ctx context.Context, input contractorpayment.DeleteContractorPaymentInput) (*contractorpayment.DeleteContractorPaymentOutput, error) {
 	return s.deletePayment.Execute(ctx, input)
 }
 
+// List отримує список платежів контрагентам з фільтрацією.
 func (s *ContractorPaymentService) List(ctx context.Context, input contractorpayment.ListContractorPaymentsInput) (*contractorpayment.ListContractorPaymentsOutput, error) {
 	return s.listPayments.Execute(ctx, input)
 }

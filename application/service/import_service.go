@@ -2,6 +2,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -11,13 +12,13 @@ import (
 )
 
 // ImportService надає високорівневі операції імпорту.
-type ImportService interface {
-	ImportXLSXFile(filePath string, importedBy int64) (*ImportSummary, error)
-	GetImportBatches() ([]*entity.ImportBatch, error)
-	GetImportBatchByID(id int64) (*entity.ImportBatch, error)
-	GetImportedRecords(batchID int64) ([]*entity.ImportedMonthlyRecord, error)
-	GetRecordsByPeriod(month, year int) ([]*entity.ImportedMonthlyRecord, error)
-	DeleteImportBatch(id int64) error
+type ImportServiceInterface interface {
+	ImportXLSXFile(ctx context.Context, filePath string, importedBy int64) (*ImportSummary, error)
+	GetImportBatches(ctx context.Context) ([]*entity.ImportBatch, error)
+	GetImportBatchByID(ctx context.Context, id int64) (*entity.ImportBatch, error)
+	GetImportedRecords(ctx context.Context, batchID int64) ([]*entity.ImportedMonthlyRecord, error)
+	GetRecordsByPeriod(ctx context.Context, month, year int) ([]*entity.ImportedMonthlyRecord, error)
+	DeleteImportBatch(ctx context.Context, id int64) error
 }
 
 // ImportSummary представляє підсумок імпорту.
@@ -43,7 +44,7 @@ type importServiceImpl struct {
 func NewImportService(
 	batchRepo repository.ImportBatchRepository,
 	recordRepo repository.ImportedRecordRepository,
-) ImportService {
+) ImportServiceInterface {
 	importUC := importusecase.NewImportXLSXUseCase(batchRepo, recordRepo)
 
 	return &importServiceImpl{
@@ -54,7 +55,7 @@ func NewImportService(
 }
 
 // ImportXLSXFile імпортує XLSX файл.
-func (s *importServiceImpl) ImportXLSXFile(filePath string, importedBy int64) (*ImportSummary, error) {
+func (s *importServiceImpl) ImportXLSXFile(ctx context.Context, filePath string, importedBy int64) (*ImportSummary, error) {
 	fileName := filepath.Base(filePath)
 
 	input := importusecase.ImportXLSXInput{
@@ -81,26 +82,26 @@ func (s *importServiceImpl) ImportXLSXFile(filePath string, importedBy int64) (*
 }
 
 // GetImportBatches повертає всі батчі.
-func (s *importServiceImpl) GetImportBatches() ([]*entity.ImportBatch, error) {
+func (s *importServiceImpl) GetImportBatches(ctx context.Context) ([]*entity.ImportBatch, error) {
 	return s.batchRepo.FindAll()
 }
 
 // GetImportBatchByID повертає батч за ID.
-func (s *importServiceImpl) GetImportBatchByID(id int64) (*entity.ImportBatch, error) {
+func (s *importServiceImpl) GetImportBatchByID(ctx context.Context, id int64) (*entity.ImportBatch, error) {
 	return s.batchRepo.FindByID(id)
 }
 
 // GetImportedRecords повертає записи батчу.
-func (s *importServiceImpl) GetImportedRecords(batchID int64) ([]*entity.ImportedMonthlyRecord, error) {
+func (s *importServiceImpl) GetImportedRecords(ctx context.Context, batchID int64) ([]*entity.ImportedMonthlyRecord, error) {
 	return s.recordRepo.FindByBatchID(batchID)
 }
 
 // GetRecordsByPeriod повертає записи за період.
-func (s *importServiceImpl) GetRecordsByPeriod(month, year int) ([]*entity.ImportedMonthlyRecord, error) {
+func (s *importServiceImpl) GetRecordsByPeriod(ctx context.Context, month, year int) ([]*entity.ImportedMonthlyRecord, error) {
 	return s.recordRepo.FindByPeriod(month, year)
 }
 
 // DeleteImportBatch видаляє батч (каскадно видалить всі записи).
-func (s *importServiceImpl) DeleteImportBatch(id int64) error {
+func (s *importServiceImpl) DeleteImportBatch(ctx context.Context, id int64) error {
 	return s.batchRepo.Delete(id)
 }

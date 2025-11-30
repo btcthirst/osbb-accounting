@@ -13,6 +13,7 @@ import (
 	"osbb-accounting/application/service"
 	"osbb-accounting/application/usecase/cashflow"
 	"osbb-accounting/presentation/fyne/common"
+	"osbb-accounting/presentation/fyne/text"
 )
 
 // CashFlowScreen - екран руху коштів (read-only звіт)
@@ -65,15 +66,12 @@ func (s *CashFlowScreen) buildUI() {
 		s.loadCashFlow()
 	})
 
-	s.exportButton = widget.NewButton("📊 Експорт в XLSX", func() {
+	s.exportButton = widget.NewButton(text.ActionExportXlsx, func() {
 		s.exportToXLSX()
 	})
 
-	// Month/Year filters
-	months := []string{
-		"Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень",
-		"Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень",
-	}
+	// Month/Year filters "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень",
+	months := text.Months
 	s.monthSelect = widget.NewSelect(months, func(selected string) {
 		// Знаходимо індекс місяця
 		for i, m := range months {
@@ -111,7 +109,7 @@ func (s *CashFlowScreen) buildUI() {
 func (s *CashFlowScreen) createTable() {
 	s.table = widget.NewTable(
 		func() (int, int) {
-			return len(s.entries) + 1, 12 // +1 for header
+			return len(s.entries) + 1, len(text.CashFlowTableHeaders) // +1 for header
 		},
 		func() fyne.CanvasObject {
 			return newTableTemplate()
@@ -120,9 +118,8 @@ func (s *CashFlowScreen) createTable() {
 			label := cell.(*widget.Label)
 
 			if id.Row == 0 {
-				// Headers
-				renderTableHeader(label,
-					[]string{"№ п/п", "Контрагент", "Дата", "Дт рах. 311", "Оборот по дт", "313", "63", "641", "641.1", "651", "94", "Оборот по кт"}, id.Col)
+				// Headers "№ п/п", "Контрагент", "Дата", "Дт рах. 311", "Оборот по дт", "313", "63", "641", "641.1", "651", "94", "Оборот по кт"
+				renderTableHeader(label, text.CashFlowTableHeaders, id.Col)
 				return
 			}
 
@@ -229,7 +226,7 @@ func (s *CashFlowScreen) Render() fyne.CanvasObject {
 	// Toolbar with filters
 	filterBar := container.NewBorder(
 		nil, nil,
-		widget.NewLabel("Період:"),
+		widget.NewLabel(text.LabelPeriod),
 		nil,
 		container.NewHBox(
 			s.monthSelect,
@@ -250,11 +247,12 @@ func (s *CashFlowScreen) Render() fyne.CanvasObject {
 func (s *CashFlowScreen) loadCashFlow() {
 	// Safety check
 	if s.cashflowService == nil {
-		common.ShowError(s.window, fmt.Errorf("CashFlow service not initialized"))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorServiceNotInitialized, "CashFlow"))
 		return
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	input := cashflow.ListCashFlowInput{
 		CurrentUserID: s.authManager.GetCurrentUserID(),
 		Month:         &s.currentMonth,
@@ -263,7 +261,7 @@ func (s *CashFlowScreen) loadCashFlow() {
 
 	output, err := s.cashflowService.List(ctx, input)
 	if err != nil {
-		common.ShowError(s.window, err)
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorLoading, err))
 		return
 	}
 
@@ -274,7 +272,7 @@ func (s *CashFlowScreen) loadCashFlow() {
 
 func (s *CashFlowScreen) updateStats(output *cashflow.ListCashFlowOutput) {
 	stats := fmt.Sprintf(
-		"Показано: %d операцій | Надходження: %.2f грн | Витрати: %.2f грн | Сальдо: %.2f грн",
+		text.MsgCashFlowStats,
 		output.Total,
 		output.TotalDebit,
 		output.TotalCredit,
@@ -284,7 +282,8 @@ func (s *CashFlowScreen) updateStats(output *cashflow.ListCashFlowOutput) {
 }
 
 func (s *CashFlowScreen) exportToXLSX() {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	// Отримуємо OSBB назву
 	osbbName := "ОСББ" // TODO: отримувати з налаштувань
@@ -298,15 +297,15 @@ func (s *CashFlowScreen) exportToXLSX() {
 	// Генеруємо файл
 	file, filename, err := s.cashflowService.ExportToXLSX(ctx, input, osbbName)
 	if err != nil {
-		common.ShowError(s.window, fmt.Errorf("помилка експорту: %w", err))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorExport, err))
 		return
 	}
 
 	// Зберігаємо файл
 	if err := file.SaveAs(filename); err != nil {
-		common.ShowError(s.window, fmt.Errorf("помилка збереження файлу: %w", err))
+		common.ShowError(s.window, fmt.Errorf(text.MsgErrorSaveFile, err))
 		return
 	}
 
-	common.ShowSuccess(s.window, fmt.Sprintf("Файл збережено: %s", filename))
+	common.ShowSuccess(s.window, fmt.Sprintf(text.MsgSuccessFileSaved, filename))
 }

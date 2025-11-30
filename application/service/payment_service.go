@@ -47,34 +47,42 @@ func NewPaymentService(
 	}
 }
 
+// Create створює новий платіж.
 func (s *PaymentService) Create(ctx context.Context, input payment.CreatePaymentInput) (*payment.PaymentOutput, error) {
 	return s.createPayment.Execute(ctx, input)
 }
 
+// Get отримує платіж за ID.
 func (s *PaymentService) Get(ctx context.Context, input payment.GetPaymentInput) (*payment.PaymentOutput, error) {
 	return s.getPayment.Execute(ctx, input)
 }
 
+// Update оновлює дані платежу.
 func (s *PaymentService) Update(ctx context.Context, input payment.UpdatePaymentInput) (*payment.PaymentOutput, error) {
 	return s.updatePayment.Execute(ctx, input)
 }
 
+// Delete видаляє платіж.
 func (s *PaymentService) Delete(ctx context.Context, input payment.DeletePaymentInput) (*payment.DeletePaymentOutput, error) {
 	return s.deletePayment.Execute(ctx, input)
 }
 
+// List отримує список платежів з фільтрацією.
 func (s *PaymentService) List(ctx context.Context, input payment.ListPaymentsInput) (*payment.ListPaymentsOutput, error) {
 	return s.listPayments.Execute(ctx, input)
 }
 
+// Approve підтверджує платіж.
 func (s *PaymentService) Approve(ctx context.Context, input payment.ApprovePaymentInput) (*payment.PaymentOutput, error) {
 	return s.approvePayment.Execute(ctx, input)
 }
 
+// Unapprove скасовує підтвердження платежу.
 func (s *PaymentService) Unapprove(ctx context.Context, input payment.UnapprovePaymentInput) (*payment.PaymentOutput, error) {
 	return s.unapprovePayment.Execute(ctx, input)
 }
 
+// GetStatistics отримує статистику по платежах.
 func (s *PaymentService) GetStatistics(ctx context.Context, input payment.GetPaymentStatisticsInput) (*repository.PaymentStatistics, error) {
 	return s.getStatistics.Execute(ctx, input)
 }
