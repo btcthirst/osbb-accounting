@@ -108,8 +108,10 @@ const (
 var (
 	ApartmentsTableHeaders = []string{TableHeaderNumber, TableHeaderDisplayName, TableHeaderApartmentNumber,
 		TableHeaderAreaLiving, TableHeaderEntrance, TableHeaderActions}
-	CashFlowTableHeaders = []string{TableHeaderNumber, TableHeaderDisplayName, TableHeaderApartmentNumber,
-		TableHeaderAreaLiving, TableHeaderEntrance, TableHeaderActions}
+	CashFlowTableHeaders = []string{TableHeaderCashFlowNumber, TableHeaderCashFlowCounterparty, TableHeaderCashFlowDate,
+		TableHeaderCashFlowDebit311, TableHeaderCashFlowDebitTotal, TableHeaderCashFlowCredit313, TableHeaderCashFlowCredit63,
+		TableHeaderCashFlowCredit641, TableHeaderCashFlowCredit6411, TableHeaderCashFlowCredit651, TableHeaderCashFlowCredit94,
+		TableHeaderCashFlowCreditTotal}
 	ContractorPaymentsTableHeaders = []string{TableHeaderContractorPaymentID, TableHeaderContractorPaymentContractor,
 		TableHeaderContractorPaymentDate, TableHeaderContractorPaymentPeriod, TableHeaderContractorPaymentMethod,
 		TableHeaderContractorPaymentAmount, TableHeaderContractorPaymentActions}
