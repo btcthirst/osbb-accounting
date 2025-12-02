@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"osbb-accounting/application/usecase/owner"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/repository"
 )
 
@@ -12,7 +13,7 @@ type OwnerServiceInterface interface {
 	Create(ctx context.Context, input owner.CreateOwnerInput) (*owner.OwnerOutput, error)
 	Get(ctx context.Context, input owner.GetOwnerInput) (*owner.OwnerOutput, error)
 	Update(ctx context.Context, input owner.UpdateOwnerInput) (*owner.OwnerOutput, error)
-	Delete(ctx context.Context, input owner.DeleteOwnerInput) (*owner.DeleteOwnerOutput, error)
+	Delete(ctx context.Context, input owner.DeleteOwnerInput) (*shared.DeleteOutput, error)
 	List(ctx context.Context, input owner.ListOwnersInput) (*owner.ListOwnersOutput, error)
 	Search(ctx context.Context, input owner.SearchOwnersInput) ([]*owner.OwnerOutput, error)
 }
@@ -58,7 +59,7 @@ func (s *OwnerService) Update(ctx context.Context, input owner.UpdateOwnerInput)
 }
 
 // Delete видаляє власника.
-func (s *OwnerService) Delete(ctx context.Context, input owner.DeleteOwnerInput) (*owner.DeleteOwnerOutput, error) {
+func (s *OwnerService) Delete(ctx context.Context, input owner.DeleteOwnerInput) (*shared.DeleteOutput, error) {
 	return s.deleteOwner.Execute(ctx, input)
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"osbb-accounting/application/usecase/contractor"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/repository"
 )
 
@@ -12,7 +13,7 @@ type ContractorServiceInterface interface {
 	Create(ctx context.Context, input contractor.CreateContractorInput) (*contractor.ContractorOutput, error)
 	Get(ctx context.Context, input contractor.GetContractorInput) (*contractor.ContractorOutput, error)
 	Update(ctx context.Context, input contractor.UpdateContractorInput) (*contractor.ContractorOutput, error)
-	Delete(ctx context.Context, input contractor.DeleteContractorInput) (*contractor.DeleteContractorOutput, error)
+	Delete(ctx context.Context, input contractor.DeleteContractorInput) (*shared.DeleteOutput, error)
 	List(ctx context.Context, input contractor.ListContractorsInput) (*contractor.ListContractorsOutput, error)
 	Search(ctx context.Context, input contractor.SearchContractorsInput) ([]*contractor.ContractorOutput, error)
 }
@@ -58,7 +59,7 @@ func (s *ContractorService) Update(ctx context.Context, input contractor.UpdateC
 }
 
 // Delete видаляє контрагента.
-func (s *ContractorService) Delete(ctx context.Context, input contractor.DeleteContractorInput) (*contractor.DeleteContractorOutput, error) {
+func (s *ContractorService) Delete(ctx context.Context, input contractor.DeleteContractorInput) (*shared.DeleteOutput, error) {
 	return s.deleteContractor.Execute(ctx, input)
 }
 

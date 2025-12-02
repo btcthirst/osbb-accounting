@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"osbb-accounting/application/usecase/apartment"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/repository"
 )
 
@@ -12,7 +13,7 @@ type ApartmentServiceInterface interface {
 	Create(ctx context.Context, input apartment.CreateApartmentInput) (*apartment.ApartmentOutput, error)
 	Get(ctx context.Context, input apartment.GetApartmentInput) (*apartment.ApartmentOutput, error)
 	Update(ctx context.Context, input apartment.UpdateApartmentInput) (*apartment.ApartmentOutput, error)
-	Delete(ctx context.Context, input apartment.DeleteApartmentInput) (*apartment.DeleteApartmentOutput, error)
+	Delete(ctx context.Context, input apartment.DeleteApartmentInput) (*shared.DeleteOutput, error)
 	List(ctx context.Context, input apartment.ListApartmentsInput) (*apartment.ListApartmentsOutput, error)
 	GetStatistics(ctx context.Context, input apartment.GetApartmentStatisticsInput) (*apartment.ApartmentStatisticsOutput, error)
 }
@@ -58,7 +59,7 @@ func (s *ApartmentService) Update(ctx context.Context, input apartment.UpdateApa
 }
 
 // Delete видаляє квартиру.
-func (s *ApartmentService) Delete(ctx context.Context, input apartment.DeleteApartmentInput) (*apartment.DeleteApartmentOutput, error) {
+func (s *ApartmentService) Delete(ctx context.Context, input apartment.DeleteApartmentInput) (*shared.DeleteOutput, error) {
 	return s.deleteApartment.Execute(ctx, input)
 }
 

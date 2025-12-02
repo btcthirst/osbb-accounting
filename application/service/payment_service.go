@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"osbb-accounting/application/usecase/payment"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/repository"
 )
 
@@ -11,7 +12,7 @@ type PaymentServiceInterface interface {
 	Create(context.Context, payment.CreatePaymentInput) (*payment.PaymentOutput, error)
 	Get(context.Context, payment.GetPaymentInput) (*payment.PaymentOutput, error)
 	Update(context.Context, payment.UpdatePaymentInput) (*payment.PaymentOutput, error)
-	Delete(context.Context, payment.DeletePaymentInput) (*payment.DeletePaymentOutput, error)
+	Delete(context.Context, payment.DeletePaymentInput) (*shared.DeleteOutput, error)
 	List(context.Context, payment.ListPaymentsInput) (*payment.ListPaymentsOutput, error)
 	Approve(context.Context, payment.ApprovePaymentInput) (*payment.PaymentOutput, error)
 	Unapprove(context.Context, payment.UnapprovePaymentInput) (*payment.PaymentOutput, error)
@@ -63,7 +64,7 @@ func (s *PaymentService) Update(ctx context.Context, input payment.UpdatePayment
 }
 
 // Delete видаляє платіж.
-func (s *PaymentService) Delete(ctx context.Context, input payment.DeletePaymentInput) (*payment.DeletePaymentOutput, error) {
+func (s *PaymentService) Delete(ctx context.Context, input payment.DeletePaymentInput) (*shared.DeleteOutput, error) {
 	return s.deletePayment.Execute(ctx, input)
 }
 

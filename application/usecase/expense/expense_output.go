@@ -1,10 +1,13 @@
-// application/usecase/expense/expense_usecase.go
+// application/usecase/expense/expense_output.go
 package expense
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"osbb-accounting/domain/entity"
+	"osbb-accounting/domain/repository"
 )
 
 // ExpenseOutput - DTO для відображення витрати
@@ -107,4 +110,34 @@ type GetExpenseStatisticsInput struct {
 	CurrentUserID int64
 	StartDate     *int64
 	EndDate       *int64
+}
+
+// toOutput converts entity to output DTO
+func toOutput(e *entity.Expense, categoryRepo repository.ExpenseCategoryRepository) *ExpenseOutput {
+	// Get category name
+	categoryName := fmt.Sprintf("Category %d", e.CategoryID) // Fallback
+	if category, err := categoryRepo.GetByID(context.Background(), e.CategoryID); err == nil {
+		categoryName = category.Name
+	}
+
+	return &ExpenseOutput{
+		ID:                e.ID,
+		CategoryID:        e.CategoryID,
+		CategoryName:      categoryName,
+		ContractorID:      e.ContractorID,
+		ExpenseDate:       e.ExpenseDate,
+		Amount:            e.Amount,
+		Description:       e.Description,
+		DocumentType:      e.DocumentType,
+		DocumentNumber:    e.DocumentNumber,
+		DocumentDate:      e.DocumentDate,
+		PaymentStatus:     string(e.PaymentStatus),
+		PaymentStatusName: e.PaymentStatus.GetDisplayName(),
+		PaidAmount:        e.PaidAmount,
+		PaymentDate:       e.PaymentDate,
+		Notes:             e.Notes,
+		IsApproved:        e.IsApproved(),
+		ApprovedBy:        e.ApprovedBy,
+		ApprovedAt:        e.ApprovedAt,
+	}
 }

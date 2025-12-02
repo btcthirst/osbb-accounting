@@ -20,8 +20,16 @@ type ExportToXLSXInput struct {
 	EndBalance   float64
 }
 
-// ExportToXLSX генерує XLSX файл з даними руху коштів
-func ExportToXLSX(input ExportToXLSXInput) (*excelize.File, error) {
+// ExportCashFlowUseCase - use case для експорту руху коштів
+type ExportCashFlowUseCase struct{}
+
+// NewExportCashFlowUseCase створює новий use case
+func NewExportCashFlowUseCase() *ExportCashFlowUseCase {
+	return &ExportCashFlowUseCase{}
+}
+
+// Execute генерує XLSX файл з даними руху коштів
+func (uc *ExportCashFlowUseCase) Execute(input ExportToXLSXInput) (*excelize.File, error) {
 	f := excelize.NewFile()
 	sheetName := "Рух коштів"
 

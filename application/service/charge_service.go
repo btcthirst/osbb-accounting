@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"osbb-accounting/application/usecase/charge"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/repository"
 )
 
@@ -11,7 +12,7 @@ type ChargeServiceInterface interface {
 	Create(ctx context.Context, input charge.CreateChargeInput) (*charge.ChargeOutput, error)
 	Get(ctx context.Context, input charge.GetChargeInput) (*charge.ChargeOutput, error)
 	Update(ctx context.Context, input charge.UpdateChargeInput) (*charge.ChargeOutput, error)
-	Delete(ctx context.Context, input charge.DeleteChargeInput) (*charge.DeleteChargeOutput, error)
+	Delete(ctx context.Context, input charge.DeleteChargeInput) (*shared.DeleteOutput, error)
 	List(ctx context.Context, input charge.ListChargesInput) (*charge.ListChargesOutput, error)
 	GetStatistics(ctx context.Context, input charge.GetChargeStatisticsInput) (*repository.ChargeStatistics, error)
 }
@@ -57,7 +58,7 @@ func (s *ChargeService) Update(ctx context.Context, input charge.UpdateChargeInp
 }
 
 // Delete видаляє нарахування.
-func (s *ChargeService) Delete(ctx context.Context, input charge.DeleteChargeInput) (*charge.DeleteChargeOutput, error) {
+func (s *ChargeService) Delete(ctx context.Context, input charge.DeleteChargeInput) (*shared.DeleteOutput, error) {
 	return s.deleteCharge.Execute(ctx, input)
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"osbb-accounting/application/usecase/ownership"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/repository"
 )
 
@@ -12,7 +13,7 @@ type OwnershipServiceInterface interface {
 	Create(ctx context.Context, input ownership.CreateOwnershipShareInput) (*ownership.OwnershipShareOutput, error)
 	Get(ctx context.Context, input ownership.GetOwnershipShareInput) (*ownership.OwnershipShareDetailsOutput, error)
 	Update(ctx context.Context, input ownership.UpdateOwnershipShareInput) (*ownership.OwnershipShareOutput, error)
-	Delete(ctx context.Context, input ownership.DeleteOwnershipShareInput) (*ownership.DeleteOwnershipShareOutput, error)
+	Delete(ctx context.Context, input ownership.DeleteOwnershipShareInput) (*shared.DeleteOutput, error)
 	List(ctx context.Context, input ownership.ListOwnershipSharesInput) (*ownership.ListOwnershipSharesOutput, error)
 	GetByApartment(ctx context.Context, input ownership.GetByApartmentInput) ([]*ownership.OwnershipShareDetailsOutput, error)
 	GetByOwner(ctx context.Context, input ownership.GetByOwnerInput) ([]*ownership.OwnershipShareDetailsOutput, error)
@@ -94,7 +95,7 @@ func (s *OwnershipService) Update(
 func (s *OwnershipService) Delete(
 	ctx context.Context,
 	input ownership.DeleteOwnershipShareInput,
-) (*ownership.DeleteOwnershipShareOutput, error) {
+) (*shared.DeleteOutput, error) {
 	return s.deleteShare.Execute(ctx, input)
 }
 

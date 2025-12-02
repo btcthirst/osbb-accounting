@@ -8,7 +8,6 @@ import (
 
 	"osbb-accounting/application/service"
 	authUseCase "osbb-accounting/application/usecase/auth"
-	"osbb-accounting/application/usecase/cashflow"
 	"osbb-accounting/config"
 	"osbb-accounting/infrastructure/persistence/sqlite"
 	"osbb-accounting/infrastructure/security"
@@ -136,24 +135,14 @@ func Initialize(cfg *config.Config) (*App, error) {
 	)
 
 	// CashFlow Service (reports)
-	cashflowUseCase := cashflow.NewCashFlowUseCase(
+	cashflowService := service.NewCashFlowService(
 		paymentRepo,
 		contractorPaymentRepo,
 		expenseRepo,
 		ownershipRepo,
 		expenseCategoryRepo,
 		contractorRepo,
-	)
-
-	cashflowService := service.NewCashFlowService(
-		cashflowUseCase,
-		paymentRepo,
-		expenseRepo,
-		ownershipRepo,
-		apartmentRepo,
 		ownerRepo,
-		expenseCategoryRepo,
-		contractorRepo,
 	)
 
 	// 4. Create Service Container

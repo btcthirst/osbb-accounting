@@ -3,6 +3,7 @@ package contractor
 import (
 	"context"
 	"fmt"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/entity"
 	domainErrors "osbb-accounting/domain/errors"
 	"osbb-accounting/domain/repository"
@@ -28,12 +29,7 @@ type DeleteContractorInput struct {
 	ContractorID  int64
 }
 
-type DeleteContractorOutput struct {
-	Success bool
-	Message string
-}
-
-func (uc *DeleteContractorUseCase) Execute(ctx context.Context, input DeleteContractorInput) (*DeleteContractorOutput, error) {
+func (uc *DeleteContractorUseCase) Execute(ctx context.Context, input DeleteContractorInput) (*shared.DeleteOutput, error) {
 	hasPermission, err := uc.permissionRepo.HasPermissionForResource(
 		ctx, input.CurrentUserID, "contractors", entity.ActionDelete,
 	)
@@ -60,9 +56,7 @@ func (uc *DeleteContractorUseCase) Execute(ctx context.Context, input DeleteCont
 		return nil, fmt.Errorf("failed to delete contractor: %w", err)
 	}
 
-	return &DeleteContractorOutput{
-			Success: true,
-			Message: fmt.Sprintf("Contractor '%s' successfully deleted", contractor.GetDisplayName()),
-		},
-		nil
+	return shared.NewDeleteOutput(
+		fmt.Sprintf("Contractor '%s' successfully deleted", contractor.GetDisplayName()),
+	), nil
 }

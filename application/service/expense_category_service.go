@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"osbb-accounting/application/usecase/expense_category"
+	"osbb-accounting/application/usecase/shared"
 	"osbb-accounting/domain/repository"
 )
 
 type ExpenseCategoryServiceInterface interface {
 	Create(ctx context.Context, input expense_category.CreateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
 	Update(ctx context.Context, input expense_category.UpdateExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
-	Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error)
+	Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*shared.DeleteOutput, error)
 	GetCategoryPath(ctx context.Context, input expense_category.GetCategoryPathInput) (*expense_category.CategoryPathOutput, error)
 	GetCategoryTree(ctx context.Context, input expense_category.GetCategoryTreeInput) ([]*expense_category.ExpenseCategoryTreeOutput, error)
 	Get(ctx context.Context, input expense_category.GetExpenseCategoryInput) (*expense_category.ExpenseCategoryOutput, error)
@@ -55,7 +56,7 @@ func (s *ExpenseCategoryService) Update(ctx context.Context, input expense_categ
 }
 
 // Delete видаляє категорію витрат.
-func (s *ExpenseCategoryService) Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*expense_category.DeleteExpenseCategoryOutput, error) {
+func (s *ExpenseCategoryService) Delete(ctx context.Context, input expense_category.DeleteExpenseCategoryInput) (*shared.DeleteOutput, error) {
 	return s.deleteExpenseCategory.Execute(ctx, input)
 }
 
