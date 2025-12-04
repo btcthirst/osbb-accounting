@@ -366,6 +366,23 @@ func (r *OwnershipShareRepository) CheckDuplicateActiveOwnership(ctx context.Con
 	return count > 0, nil
 }
 
+// GetByApartmentAndOwner отримує частку за ID квартири та власника.
+func (r *OwnershipShareRepository) GetByApartmentAndOwner(ctx context.Context, apartmentID, ownerID int64) (*entity.OwnershipShare, error) {
+	query := `
+		SELECT 
+			id, owner_id, apartment_id, share_numerator, share_denominator,
+			ownership_type, start_date, end_date, document_type,
+			document_number, document_date, notes, is_active,
+			deleted_at, created_at, updated_at
+		FROM ownership_shares
+		WHERE apartment_id = ? AND owner_id = ? AND deleted_at IS NULL
+		ORDER BY is_active DESC, start_date DESC
+		LIMIT 1
+	`
+
+	return r.scanShare(ctx, query, apartmentID, ownerID)
+}
+
 // CalculateTotalShareForApartment обчислює загальну суму часток у квартирі.
 func (r *OwnershipShareRepository) CalculateTotalShareForApartment(ctx context.Context, apartmentID int64, excludeID *int64) (float64, error) {
 	query := `

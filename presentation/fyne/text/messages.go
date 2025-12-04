@@ -5,6 +5,7 @@ const (
 	ActionEdit       = "✏️ Редагувати"
 	ActionDelete     = "🗑️ Видалити"
 	ActionDetails    = "ℹ️ Деталі"
+	ActionProcess    = "⚙️ Опрацювати"
 	ActionSave       = "Зберегти"
 	ActionCancel     = "Скасувати"
 	ActionRefresh    = "Оновити"
@@ -17,7 +18,6 @@ const (
 	ActionExportXlsx = "📊 Експорт в XLSX"
 	ActionApprove    = "✅ Затвердити"
 	ActionUnapprove  = "↩️ Скасувати затвердження"
-	ActionAddPayment = "Додати платіж"
 	ActionClose      = "Закрити"
 )
 
@@ -41,6 +41,8 @@ const (
 	MsgSuccessFileSaved           = "Файл збережено: %s"
 	MsgSuccessPaymentDeleted      = "Платіж успішно видалено"
 	MsgContractorPaymentStats     = "Показано: %d платежів | Загальна сума: %.2f грн"
+	MsgApartmentStats             = "Показано: %d з %d квартир"
+	MsgNoData                     = "не вказано"
 	MsgSuccessOwnerDeleted        = "Власник '%s' успішно видалено"
 	MsgSuccessShareDeleted        = "Частку власності успішно видалено"
 	MsgSuccessContractorDeleted   = "Контрагента успішно видалено"
@@ -61,6 +63,7 @@ const (
 	MsgOSBBNotConfigured          = "Організація ОСББ ще не налаштована"
 	MsgOSBBAdminRequired          = "Створити ОСББ (потрібні права адміністратора)"
 	MsgSuccessTitle               = "Успішно"
+	MsgNotes                      = "\nПримітки: %s\n"
 )
 
 // Navigation Menu Titles

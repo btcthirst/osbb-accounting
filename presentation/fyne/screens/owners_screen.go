@@ -94,7 +94,7 @@ func (s *OwnersScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = newCreateButton(text.ActionAdd+" власника", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showCreateDialog()
 	})
 
@@ -344,6 +344,7 @@ func (s *OwnersScreen) showActionsMenu(o *owner.OwnerOutput) {
 		func() { s.showOwnerDialog(o) },
 		func() { s.confirmDelete(o) },
 		func() { s.showOwnerDetails(o) },
+		nil,
 	)
 
 	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleOwnerActions, o.FullName), actions)

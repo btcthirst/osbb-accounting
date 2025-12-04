@@ -74,7 +74,7 @@ func NewExpensesScreen(
 
 func (s *ExpensesScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton(text.ActionAdd+" витрату", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showExpenseDialog(nil)
 	})
 
@@ -227,6 +227,7 @@ func (s *ExpensesScreen) showActionsMenu(rowIndex int) {
 			}
 			s.confirmDelete(e)
 		},
+		nil,
 		nil,
 	)
 

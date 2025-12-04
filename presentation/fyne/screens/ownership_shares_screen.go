@@ -101,7 +101,7 @@ func (s *OwnershipSharesScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = newCreateButton(text.ActionAdd+" частку", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showCreateDialog()
 	})
 
@@ -357,6 +357,7 @@ func (s *OwnershipSharesScreen) showActionsMenu(share *ownership.OwnershipShareD
 		func() { s.showOwnershipDialog(&share.OwnershipShareOutput) }, // Pass embedded struct
 		func() { s.confirmDelete(share) },
 		func() { s.showShareDetails(share) },
+		nil,
 	)
 
 	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleShareActions, share.ID), actions)

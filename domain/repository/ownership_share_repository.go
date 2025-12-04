@@ -39,6 +39,9 @@ type OwnershipShareRepository interface {
 	// CheckDuplicateActiveOwnership перевіряє наявність активної частки
 	CheckDuplicateActiveOwnership(ctx context.Context, ownerID, apartmentID int64, excludeID *int64) (bool, error)
 
+	// GetByApartmentAndOwner отримує частку за ID квартири та власника
+	GetByApartmentAndOwner(ctx context.Context, apartmentID, ownerID int64) (*entity.OwnershipShare, error)
+
 	// CalculateTotalShareForApartment обчислює загальну суму часток у квартирі
 	CalculateTotalShareForApartment(ctx context.Context, apartmentID int64, excludeID *int64) (float64, error)
 

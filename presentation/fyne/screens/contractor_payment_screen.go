@@ -72,7 +72,7 @@ func NewContractorPaymentScreen(
 
 func (s *ContractorPaymentScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton(text.ActionAddPayment, func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showPaymentDialog(nil)
 	})
 
@@ -227,6 +227,7 @@ func (s *ContractorPaymentScreen) showActionsMenu(rowIndex int) {
 			s.confirmDelete(p)
 		},
 		nil, // No details view yet
+		nil, // No process view yet
 	)
 
 	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitlePaymentActions, p.ID), actions)

@@ -131,6 +131,22 @@ var (
 		TableHeaderCategoryStatus, TableHeaderCategoryActions}
 	ImportBatchesTableHeaders = []string{TableHeaderBatchID, TableHeaderBatchFile, TableHeaderBatchStatus,
 		TableHeaderBatchSheets, TableHeaderBatchRecords, TableHeaderBatchDate, TableHeaderBatchActions}
-	ImportRecordsTableHeaders = []string{TableHeaderRecordApartment, TableHeaderRecordName, TableHeaderRecordPeriod,
-		TableHeaderRecordCharged, TableHeaderRecordPaid, TableHeaderRecordDebt}
+	ImportRecordsTableHeaders = []string{
+		"№ кв.",
+		"ПІБ",
+		"Особ. рах",
+		"Д-Т (Поч)",
+		"К-Т (Поч)",
+		"Пільга %",
+		"Заг. пл",
+		"Пільг. Площа",
+		"Тариф",
+		"100% нарах.",
+		"Пільгова сума",
+		"Коригування",
+		"До сплати",
+		"Сплачено",
+		"Д-Т (Кін)",
+		"К-Т (Кін)",
+	}
 )

@@ -132,6 +132,11 @@ func Initialize(cfg *config.Config) (*App, error) {
 	importService := service.NewImportService(
 		importBatchRepo,
 		importRecordRepo,
+		apartmentRepo,
+		ownerRepo,
+		ownershipRepo,
+		chargeRepo,
+		paymentRepo,
 	)
 
 	// CashFlow Service (reports)

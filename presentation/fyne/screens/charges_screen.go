@@ -97,7 +97,7 @@ func (s *ChargesScreen) buildUI() {
 	})
 
 	// Кнопка створення
-	s.createButton = newCreateButton(text.ActionAdd+" нарахування", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showChargeDialog(nil)
 	})
 
@@ -324,6 +324,7 @@ func (s *ChargesScreen) showActionsMenu(c *charge.ChargeOutput) {
 		func() { s.showChargeDialog(c) },
 		func() { s.confirmDelete(c) },
 		func() { s.showChargeDetails(c) },
+		nil,
 	)
 
 	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleChargeActions, c.ID), actions)

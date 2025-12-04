@@ -11,7 +11,7 @@ import (
 	"osbb-accounting/domain/repository"
 )
 
-// ImportService надає високорівневі операції імпорту.
+// ImportServiceInterface defines the contract for import operations.
 type ImportServiceInterface interface {
 	ImportXLSXFile(ctx context.Context, filePath string, importedBy int64) (*ImportSummary, error)
 	GetImportBatches(ctx context.Context) ([]*entity.ImportBatch, error)
@@ -19,9 +19,10 @@ type ImportServiceInterface interface {
 	GetImportedRecords(ctx context.Context, batchID int64) ([]*entity.ImportedMonthlyRecord, error)
 	GetRecordsByPeriod(ctx context.Context, month, year int) ([]*entity.ImportedMonthlyRecord, error)
 	DeleteImportBatch(ctx context.Context, id int64) error
+	ProcessBatch(ctx context.Context, batchID int64) (*importusecase.ProcessResult, error)
 }
 
-// ImportSummary представляє підсумок імпорту.
+// ImportSummary represents the summary of an import operation.
 type ImportSummary struct {
 	BatchID           int64
 	FileName          string
@@ -33,29 +34,42 @@ type ImportSummary struct {
 	DurationSeconds   float64
 }
 
-// importServiceImpl реалізація ImportService.
-type importServiceImpl struct {
-	importUseCase *importusecase.ImportXLSXUseCase
-	batchRepo     repository.ImportBatchRepository
-	recordRepo    repository.ImportedRecordRepository
+// ImportService implements ImportServiceInterface.
+type ImportService struct {
+	importXLSXUseCase *importusecase.ImportXLSXUseCase
+	processUseCase    *importusecase.ProcessImportBatchUseCase
+	batchRepo         repository.ImportBatchRepository
+	recordRepo        repository.ImportedRecordRepository
 }
 
-// NewImportService створює новий сервіс.
+// NewImportService creates a new ImportService.
 func NewImportService(
 	batchRepo repository.ImportBatchRepository,
 	recordRepo repository.ImportedRecordRepository,
-) ImportServiceInterface {
-	importUC := importusecase.NewImportXLSXUseCase(batchRepo, recordRepo)
-
-	return &importServiceImpl{
-		importUseCase: importUC,
-		batchRepo:     batchRepo,
-		recordRepo:    recordRepo,
+	apartmentRepo repository.ApartmentRepository,
+	ownerRepo repository.OwnerRepository,
+	ownershipShareRepo repository.OwnershipShareRepository,
+	chargeRepo repository.ChargeRepository,
+	paymentRepo repository.PaymentRepository,
+) *ImportService {
+	return &ImportService{
+		importXLSXUseCase: importusecase.NewImportXLSXUseCase(batchRepo, recordRepo),
+		processUseCase: importusecase.NewProcessImportBatchUseCase(
+			batchRepo,
+			recordRepo,
+			apartmentRepo,
+			ownerRepo,
+			ownershipShareRepo,
+			chargeRepo,
+			paymentRepo,
+		),
+		batchRepo:  batchRepo,
+		recordRepo: recordRepo,
 	}
 }
 
-// ImportXLSXFile імпортує XLSX файл.
-func (s *importServiceImpl) ImportXLSXFile(ctx context.Context, filePath string, importedBy int64) (*ImportSummary, error) {
+// ImportXLSXFile imports an XLSX file.
+func (s *ImportService) ImportXLSXFile(ctx context.Context, filePath string, importedBy int64) (*ImportSummary, error) {
 	fileName := filepath.Base(filePath)
 
 	input := importusecase.ImportXLSXInput{
@@ -64,12 +78,15 @@ func (s *importServiceImpl) ImportXLSXFile(ctx context.Context, filePath string,
 		ImportedBy: importedBy,
 	}
 
-	result, err := s.importUseCase.Execute(input)
+	result, err := s.importXLSXUseCase.Execute(input)
 	if err != nil {
 		return nil, fmt.Errorf("import failed: %w", err)
 	}
 
-	return &ImportSummary{
+	// Automatically process the batch after import - REMOVED per user request
+	// Processing is now triggered manually via UI
+
+	summary := &ImportSummary{
 		BatchID:           result.BatchID,
 		FileName:          fileName,
 		TotalSheets:       result.TotalSheets,
@@ -78,30 +95,37 @@ func (s *importServiceImpl) ImportXLSXFile(ctx context.Context, filePath string,
 		FailedRecords:     result.FailedRecords,
 		Errors:            result.Errors,
 		DurationSeconds:   result.Duration.Seconds(),
-	}, nil
+	}
+
+	return summary, nil
 }
 
-// GetImportBatches повертає всі батчі.
-func (s *importServiceImpl) GetImportBatches(ctx context.Context) ([]*entity.ImportBatch, error) {
+// ProcessBatch processes an imported batch.
+func (s *ImportService) ProcessBatch(ctx context.Context, batchID int64) (*importusecase.ProcessResult, error) {
+	return s.processUseCase.Execute(ctx, batchID)
+}
+
+// GetImportBatches returns all import batches.
+func (s *ImportService) GetImportBatches(ctx context.Context) ([]*entity.ImportBatch, error) {
 	return s.batchRepo.FindAll()
 }
 
-// GetImportBatchByID повертає батч за ID.
-func (s *importServiceImpl) GetImportBatchByID(ctx context.Context, id int64) (*entity.ImportBatch, error) {
+// GetImportBatchByID returns a batch by ID.
+func (s *ImportService) GetImportBatchByID(ctx context.Context, id int64) (*entity.ImportBatch, error) {
 	return s.batchRepo.FindByID(id)
 }
 
-// GetImportedRecords повертає записи батчу.
-func (s *importServiceImpl) GetImportedRecords(ctx context.Context, batchID int64) ([]*entity.ImportedMonthlyRecord, error) {
+// GetImportedRecords returns records for a batch.
+func (s *ImportService) GetImportedRecords(ctx context.Context, batchID int64) ([]*entity.ImportedMonthlyRecord, error) {
 	return s.recordRepo.FindByBatchID(batchID)
 }
 
-// GetRecordsByPeriod повертає записи за період.
-func (s *importServiceImpl) GetRecordsByPeriod(ctx context.Context, month, year int) ([]*entity.ImportedMonthlyRecord, error) {
+// GetRecordsByPeriod returns records for a specific period.
+func (s *ImportService) GetRecordsByPeriod(ctx context.Context, month, year int) ([]*entity.ImportedMonthlyRecord, error) {
 	return s.recordRepo.FindByPeriod(month, year)
 }
 
-// DeleteImportBatch видаляє батч (каскадно видалить всі записи).
-func (s *importServiceImpl) DeleteImportBatch(ctx context.Context, id int64) error {
+// DeleteImportBatch deletes a batch and its records.
+func (s *ImportService) DeleteImportBatch(ctx context.Context, id int64) error {
 	return s.batchRepo.Delete(id)
 }

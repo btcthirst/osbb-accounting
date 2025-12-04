@@ -265,9 +265,52 @@ func (s *ImportScreen) showActionsMenu(batch *entity.ImportBatch) {
 		nil, // немає редагування
 		func() { s.confirmDeleteBatch(batch) },
 		func() { s.showFullBatchDetails(batch) },
+		func() { s.processBatch(batch) },
 	)
 
 	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleBatchActions, batch.ID), actions)
+}
+
+// processBatch запускає обробку батчу.
+func (s *ImportScreen) processBatch(batch *entity.ImportBatch) {
+	progress := dialog.NewCustomWithoutButtons("Обробка даних", widget.NewProgressBarInfinite(), s.window)
+	progress.Show()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		result, err := s.importService.ProcessBatch(ctx, batch.ID)
+
+		fyne.Do(func() {
+			progress.Hide()
+
+			if err != nil {
+				dialog.ShowError(err, s.window)
+				return
+			}
+
+			// Формуємо повідомлення про результат
+			msg := fmt.Sprintf("Обробку завершено!\n\nУспішно: %d\nПомилок: %d", result.SuccessCount, result.FailCount)
+			if len(result.Errors) > 0 {
+				msg += "\n\nПомилки:\n"
+				// Показуємо перші 10 помилок
+				limit := 10
+				if len(result.Errors) < limit {
+					limit = len(result.Errors)
+				}
+				for i := 0; i < limit; i++ {
+					msg += fmt.Sprintf("- %s\n", result.Errors[i])
+				}
+				if len(result.Errors) > limit {
+					msg += fmt.Sprintf("... та ще %d помилок", len(result.Errors)-limit)
+				}
+			}
+
+			dialog.ShowInformation("Результат обробки", msg, s.window)
+			s.handleRefresh()
+		})
+	}()
 }
 
 // showFullBatchDetails показує повні деталі батчу з можливістю прокрутки.
@@ -361,7 +404,7 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 func (s *ImportScreen) createMonthTable(records []*entity.ImportedMonthlyRecord) *widget.Table {
 	table := widget.NewTable(
 		func() (int, int) {
-			return len(records) + 1, 6 // +1 для заголовка, 6 колонок
+			return len(records) + 1, 16 // +1 для заголовка, 16 колонок
 		},
 		func() fyne.CanvasObject {
 			return widget.NewLabel("")
@@ -380,18 +423,54 @@ func (s *ImportScreen) createMonthTable(records []*entity.ImportedMonthlyRecord)
 				record := records[id.Row-1]
 
 				switch id.Col {
-				case 0:
+				case 0: // № кв.
 					label.SetText(record.ApartmentNumber)
-				case 1:
+				case 1: // ПІБ
 					label.SetText(record.OwnerName)
-				case 2:
-					label.SetText(record.GetPeriodDisplay())
-				case 3:
+				case 2: // Особ. рах
+					if record.AccountNumber != nil {
+						label.SetText(*record.AccountNumber)
+					} else {
+						label.SetText("-")
+					}
+				case 3: // Д-Т (Поч)
+					label.SetText(fmt.Sprintf("%.2f", record.OpeningDebit))
+				case 4: // К-Т (Поч)
+					label.SetText(fmt.Sprintf("%.2f", record.OpeningCredit))
+				case 5: // Пільга %
+					label.SetText(fmt.Sprintf("%d%%", record.DiscountPercent))
+				case 6: // Заг. пл
+					if record.TotalArea != nil {
+						label.SetText(fmt.Sprintf("%.2f", *record.TotalArea))
+					} else {
+						label.SetText("-")
+					}
+				case 7: // Пільг. Площа
+					label.SetText(fmt.Sprintf("%.2f", record.DiscountArea))
+				case 8: // Тариф
+					if record.Tariff != nil {
+						label.SetText(fmt.Sprintf("%.2f", *record.Tariff))
+					} else {
+						label.SetText("-")
+					}
+				case 9: // 100% нарах.
 					label.SetText(fmt.Sprintf("%.2f", record.ChargeAmount))
-				case 4:
-					label.SetText(fmt.Sprintf("%.2f", record.AmountPaid))
-				case 5:
+				case 10: // Пільгова сума
+					label.SetText(fmt.Sprintf("%.2f", record.DiscountAmount))
+				case 11: // Коригування
+					if record.Corrections != nil {
+						label.SetText(fmt.Sprintf("%.2f", *record.Corrections))
+					} else {
+						label.SetText("0.00")
+					}
+				case 12: // До сплати
 					label.SetText(fmt.Sprintf("%.2f", record.AmountDue))
+				case 13: // Сплачено
+					label.SetText(fmt.Sprintf("%.2f", record.AmountPaid))
+				case 14: // Д-Т (Кін)
+					label.SetText(fmt.Sprintf("%.2f", record.ClosingDebit))
+				case 15: // К-Т (Кін)
+					label.SetText(fmt.Sprintf("%.2f", record.ClosingCredit))
 				}
 			}
 		},
@@ -399,12 +478,22 @@ func (s *ImportScreen) createMonthTable(records []*entity.ImportedMonthlyRecord)
 
 	// Ширина колонок
 	setupTableColumnWidths(table, map[int]float32{
-		0: 80,  // Квартира
-		1: 200, // ПІБ
-		2: 100, // Період
-		3: 100, // Нараховано
-		4: 100, // Сплачено
-		5: 100, // Борг
+		0:  60,  // № кв.
+		1:  200, // ПІБ
+		2:  100, // Особ. рах
+		3:  80,  // Д-Т (Поч)
+		4:  80,  // К-Т (Поч)
+		5:  60,  // Пільга %
+		6:  70,  // Заг. пл
+		7:  90,  // Пільг. Площа
+		8:  60,  // Тариф
+		9:  90,  // 100% нарах.
+		10: 90,  // Пільгова сума
+		11: 90,  // Коригування
+		12: 90,  // До сплати
+		13: 90,  // Сплачено
+		14: 80,  // Д-Т (Кін)
+		15: 80,  // К-Т (Кін)
 	})
 
 	return table

@@ -74,7 +74,7 @@ func NewPaymentsScreen(
 
 func (s *PaymentsScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton(text.ActionAdd+" платіж", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showPaymentDialog(nil)
 	})
 
@@ -249,6 +249,7 @@ func (s *PaymentsScreen) showActionsMenu(rowIndex int) {
 			s.confirmDelete(p)
 		},
 		nil, // No details view yet
+		nil,
 	)
 
 	if p.IsApproved {

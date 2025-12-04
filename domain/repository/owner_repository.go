@@ -40,6 +40,9 @@ type OwnerRepository interface {
 
 	// Search шукає власників за запитом (ПІБ, телефон, email)
 	Search(ctx context.Context, query string, limit int) ([]*entity.Owner, error)
+
+	// GetByName шукає власника за повним ім'ям (ПІБ)
+	GetByName(ctx context.Context, name string) (*entity.Owner, error)
 }
 
 // OwnerFilter - критерії пошуку власників

@@ -70,7 +70,7 @@ func NewContractorsScreen(
 
 func (s *ContractorsScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton(text.ActionAdd+" контрагента", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showContractorDialog(nil)
 	})
 

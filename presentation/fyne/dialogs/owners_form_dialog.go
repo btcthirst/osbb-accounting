@@ -193,8 +193,8 @@ func (d *OwnerFormDialog) Show() {
 	leftColumn := container.NewVBox(
 		widget.NewLabel("Основна інформація:"),
 		widget.NewForm(
-			widget.NewFormItem("* Ім'я", d.firstNameEntry),
 			widget.NewFormItem("* Прізвище", d.lastNameEntry),
+			widget.NewFormItem("* Ім'я", d.firstNameEntry),
 			widget.NewFormItem("По батькові", d.middleNameEntry),
 		),
 		widget.NewSeparator(),

@@ -91,7 +91,7 @@ func (s *ApartmentsScreen) buildUI() {
 		},
 	)
 
-	s.createButton = newCreateButton(text.ActionAdd+" квартиру", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showApartmentDialog(nil)
 	})
 
@@ -226,7 +226,7 @@ func (s *ApartmentsScreen) Render() fyne.CanvasObject {
 
 // getStatsText повертає текст статистики.
 func (s *ApartmentsScreen) getStatsText() string {
-	return fmt.Sprintf("Показано: %d з %d квартир", len(s.filteredApartments), s.totalCount)
+	return fmt.Sprintf(text.MsgApartmentStats, len(s.filteredApartments), s.totalCount)
 }
 
 // updateStats оновлює статистику.
@@ -318,16 +318,16 @@ func (s *ApartmentsScreen) showApartmentDetails(a *apartment.ApartmentOutput) {
 		text.MsgApartmentDetails,
 		a.ApartmentNumber,
 		a.Floor,
-		ptrIntToString(a.Entrance, "не вказано"),
+		ptrIntToString(a.Entrance, text.MsgNoData),
 		a.AreaTotal,
-		ptrFloatToString(a.AreaLiving, "не вказано"),
-		ptrIntToString(a.RoomsCount, "не вказано"),
-		ptrToString(a.CadastralNumber, "не вказано"),
+		ptrFloatToString(a.AreaLiving, text.MsgNoData),
+		ptrIntToString(a.RoomsCount, text.MsgNoData),
+		ptrToString(a.CadastralNumber, text.MsgNoData),
 		activeStatus(a.IsActive),
 	)
 
 	if a.Notes != nil {
-		details += fmt.Sprintf("\nПримітки: %s\n", *a.Notes)
+		details += fmt.Sprintf(text.MsgNotes, *a.Notes)
 	}
 
 	common.ShowInformation(s.window, text.TitleApartmentDetails, details)
@@ -339,6 +339,7 @@ func (s *ApartmentsScreen) showActionsMenu(a *apartment.ApartmentOutput) {
 		func() { s.showApartmentDialog(a) },
 		func() { s.confirmDelete(a) },
 		func() { s.showApartmentDetails(a) },
+		nil,
 	)
 
 	common.ShowActionsMenu(s.window, fmt.Sprintf(text.TitleApartmentActions, a.ApartmentNumber), actions)

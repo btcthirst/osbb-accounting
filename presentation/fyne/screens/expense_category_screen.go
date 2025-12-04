@@ -69,7 +69,7 @@ func NewExpenseCategoryScreen(
 
 func (s *ExpenseCategoryScreen) buildUI() {
 	// Buttons
-	s.createButton = newCreateButton(text.ActionAdd+" категорію", func() {
+	s.createButton = newCreateButton(text.ActionAdd, func() {
 		s.showCategoryDialog(nil)
 	})
 
@@ -195,6 +195,7 @@ func (s *ExpenseCategoryScreen) showActionsMenu(rowIndex int) {
 	actions := buildStandardActions(
 		func() { s.showCategoryDialog(c) },
 		func() { s.confirmDelete(c) },
+		nil,
 		nil,
 	)
 

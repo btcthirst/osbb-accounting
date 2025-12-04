@@ -423,6 +423,27 @@ func (r *OwnerRepository) Search(ctx context.Context, query string, limit int) (
 	return r.scanOwners(rows)
 }
 
+// GetByName шукає власника за повним ім'ям (ПІБ).
+func (r *OwnerRepository) GetByName(ctx context.Context, name string) (*entity.Owner, error) {
+	// Спроба знайти за точним співпадінням ПІБ
+	// Припускаємо формат "Прізвище Ім'я По-батькові" або "Прізвище Ім'я"
+	query := `
+		SELECT 
+			id, first_name, last_name, middle_name, phone, email, tax_number,
+			passport_series, passport_number, registered_address, actual_address,
+			notes, is_active, deleted_at, created_at, updated_at
+		FROM owners
+		WHERE deleted_at IS NULL
+		  AND (
+		      last_name || ' ' || first_name || ' ' || middle_name = ? OR
+		      last_name || ' ' || first_name = ?
+		  )
+		LIMIT 1
+	`
+
+	return r.scanOwner(ctx, query, name, name)
+}
+
 // scanOwner - helper для сканування одного власника.
 func (r *OwnerRepository) scanOwner(ctx context.Context, query string, args ...interface{}) (*entity.Owner, error) {
 	owner := &entity.Owner{}
