@@ -54,7 +54,7 @@ func TestMigrationRunner_GetCurrentVersion(t *testing.T) {
 
 	version, err := runner.GetCurrentVersion()
 	require.NoError(t, err)
-	assert.Equal(t, "002", version)
+	assert.Equal(t, "006", version)
 }
 
 func TestRunMigrations(t *testing.T) {
