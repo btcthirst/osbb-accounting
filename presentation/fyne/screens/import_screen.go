@@ -319,10 +319,25 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Спробуємо спочатку стандартні записи
 	records, err := s.importService.GetImportedRecords(ctx, batch.ID)
 	if err != nil {
 		dialog.ShowError(fmt.Errorf("помилка завантаження записів: %v", err), s.window)
 		return
+	}
+
+	// Якщо стандартних записів немає, спробуємо Cash Flow записи
+	if len(records) == 0 {
+		cfRecords, err := s.importService.GetImportedCashFlowRecords(ctx, batch.ID)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("помилка завантаження записів cashflow: %v", err), s.window)
+			return
+		}
+
+		if len(cfRecords) > 0 {
+			s.showCashFlowBatchDetails(batch, cfRecords)
+			return
+		}
 	}
 
 	// Групування записів по місяцях
@@ -398,6 +413,167 @@ func (s *ImportScreen) showFullBatchDetails(batch *entity.ImportBatch) {
 	)
 	d.Resize(fyne.NewSize(900, 700))
 	d.Show()
+}
+
+func (s *ImportScreen) showCashFlowBatchDetails(batch *entity.ImportBatch, records []*entity.ImportedCashFlowRecord) {
+	// Group records by month
+	recordsByMonth := make(map[int][]*entity.ImportedCashFlowRecord)
+	for _, record := range records {
+		month := int(record.Date.Month())
+		recordsByMonth[month] = append(recordsByMonth[month], record)
+	}
+
+	// Create tabs
+	tabs := container.NewAppTabs()
+
+	// Iterate from 1 to 12
+	for month := 1; month <= 12; month++ {
+		monthRecords, exists := recordsByMonth[month]
+		if !exists || len(monthRecords) == 0 {
+			continue
+		}
+
+		// Sort by date
+		sort.Slice(monthRecords, func(i, j int) bool {
+			return monthRecords[i].Date.Before(monthRecords[j].Date)
+		})
+
+		// Create table for month
+		table := s.createCashFlowMonthTable(monthRecords)
+
+		// Month name
+		monthName := common.GetMonthName(month)
+		tabItem := container.NewTabItem(fmt.Sprintf("%s (%d)", monthName, len(monthRecords)), table)
+		tabs.Append(tabItem)
+	}
+
+	if len(tabs.Items) == 0 {
+		tabs.Append(container.NewTabItem(text.LabelNoData, widget.NewLabel(text.LabelNoRecords)))
+	}
+
+	content := container.NewBorder(
+		widget.NewLabel(fmt.Sprintf("Cash Flow Батч #%d: %s (Всього: %d записів)", batch.ID, batch.FileName, len(records))),
+		nil, nil, nil,
+		tabs,
+	)
+
+	d := dialog.NewCustom(text.TitleImportDetails, text.ActionClose, content, s.window)
+	d.Resize(fyne.NewSize(1000, 700))
+	d.Show()
+}
+
+func (s *ImportScreen) createCashFlowMonthTable(records []*entity.ImportedCashFlowRecord) *widget.Table {
+	table := widget.NewTable(
+		func() (int, int) {
+			return len(records) + 1, 12 // +1 header, 12 columns (matching CashFlowScreen)
+		},
+		func() fyne.CanvasObject {
+			return widget.NewLabel("")
+		},
+		func(id widget.TableCellID, cell fyne.CanvasObject) {
+			label := cell.(*widget.Label)
+			label.TextStyle = fyne.TextStyle{} // Reset style
+
+			if id.Row == 0 {
+				// Headers from CashFlowScreen: "№ п/п", "Контрагент", "Дата", "Дт рах. 311", "Оборот по дт", "313", "63", "641", "641.1", "651", "94", "Оборот по кт"
+				renderTableHeader(label, text.CashFlowTableHeaders, id.Col)
+				return
+			}
+
+			if id.Row-1 < len(records) {
+				r := records[id.Row-1]
+
+				// Helper to check category
+				isCategory := func(code string) bool {
+					return r.CategoryCode == code
+				}
+
+				switch id.Col {
+				case 0: // № п/п
+					label.SetText(fmt.Sprintf("%d", id.Row))
+				case 1: // Контрагент
+					label.SetText(r.ContractorName)
+				case 2: // Дата
+					label.SetText(r.Date.Format("02.01.2006"))
+				case 3: // Дт рах. 311
+					if r.OperationType == entity.CashFlowOperationDebit {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+						label.TextStyle = fyne.TextStyle{Bold: true}
+					} else {
+						label.SetText("")
+					}
+				case 4: // Оборот по дт
+					if r.OperationType == entity.CashFlowOperationDebit {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+						label.TextStyle = fyne.TextStyle{Bold: true}
+					} else {
+						label.SetText("")
+					}
+				case 5: // 313
+					if r.OperationType == entity.CashFlowOperationCredit && isCategory("313") {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+					} else {
+						label.SetText("")
+					}
+				case 6: // 63
+					if r.OperationType == entity.CashFlowOperationCredit && isCategory("63") {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+					} else {
+						label.SetText("")
+					}
+				case 7: // 641
+					if r.OperationType == entity.CashFlowOperationCredit && isCategory("641") {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+					} else {
+						label.SetText("")
+					}
+				case 8: // 641.1
+					if r.OperationType == entity.CashFlowOperationCredit && isCategory("641.1") {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+					} else {
+						label.SetText("")
+					}
+				case 9: // 651
+					if r.OperationType == entity.CashFlowOperationCredit && isCategory("651") {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+					} else {
+						label.SetText("")
+					}
+				case 10: // 94
+					if r.OperationType == entity.CashFlowOperationCredit && isCategory("94") {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+					} else {
+						label.SetText("")
+					}
+				case 11: // Оборот по кт
+					if r.OperationType == entity.CashFlowOperationCredit {
+						label.SetText(fmt.Sprintf("%.2f", r.Amount))
+						label.TextStyle = fyne.TextStyle{Bold: true}
+					} else {
+						label.SetText("")
+					}
+				}
+			}
+		},
+	)
+
+	// Column widths matching CashFlowScreen
+	setupTableColumnWidths(table, map[int]float32{
+		0:  60,  // № п/п
+		1:  150, // Контрагент
+		2:  100, // Дата
+		3:  100, // Дт рах. 311
+		4:  100, // Оборот по дт
+		5:  90,  // 313
+		6:  90,  // 63
+		7:  90,  // 641
+		8:  90,  // 641.1
+		9:  90,  // 651
+		10: 90,  // 94
+		11: 100, // Оборот по кт
+	})
+
+	return table
 }
 
 // createMonthTable створює таблицю для конкретного місяця

@@ -58,6 +58,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 	// Import
 	importBatchRepo := sqlite.NewImportBatchDAO(db)
 	importRecordRepo := sqlite.NewImportedRecordDAO(db)
+	cashFlowImportRepo := sqlite.NewImportedCashFlowRecordRepository(db)
 
 	// 3. Initialize Services (Application Layer)
 	passwordHasher := security.DefaultBCryptHasher()
@@ -132,11 +133,15 @@ func Initialize(cfg *config.Config) (*App, error) {
 	importService := service.NewImportService(
 		importBatchRepo,
 		importRecordRepo,
+		cashFlowImportRepo,
 		apartmentRepo,
 		ownerRepo,
 		ownershipRepo,
 		chargeRepo,
 		paymentRepo,
+		expenseRepo,
+		contractorRepo,
+		expenseCategoryRepo,
 	)
 
 	// CashFlow Service (reports)

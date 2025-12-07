@@ -20,6 +20,7 @@ import (
 type CashFlowScreen struct {
 	window          fyne.Window
 	cashflowService *service.CashFlowService
+	importService   service.ImportServiceInterface
 	authManager     interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
@@ -28,6 +29,7 @@ type CashFlowScreen struct {
 	// UI
 	refreshButton *widget.Button
 	exportButton  *widget.Button
+	importButton  *widget.Button
 	table         *widget.Table
 	monthSelect   *widget.Select
 	yearSelect    *widget.Select
@@ -43,6 +45,7 @@ type CashFlowScreen struct {
 func NewCashFlowScreen(
 	window fyne.Window,
 	cashflowService *service.CashFlowService,
+	importService service.ImportServiceInterface,
 	authManager interface {
 		GetCurrentUserID() int64
 		HasPermission(permission string) bool
@@ -52,6 +55,7 @@ func NewCashFlowScreen(
 	s := &CashFlowScreen{
 		window:          window,
 		cashflowService: cashflowService,
+		importService:   importService,
 		authManager:     authManager,
 		currentMonth:    int(now.Month()),
 		currentYear:     now.Year(),
@@ -68,6 +72,10 @@ func (s *CashFlowScreen) buildUI() {
 
 	s.exportButton = widget.NewButton(text.ActionExportXlsx, func() {
 		s.exportToXLSX()
+	})
+
+	s.importButton = widget.NewButton("Імпорт (311)", func() {
+		s.importCashFlow()
 	})
 
 	// Month/Year filters "Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень",
@@ -236,7 +244,7 @@ func (s *CashFlowScreen) Render() fyne.CanvasObject {
 
 	toolbar := container.NewBorder(
 		nil, nil,
-		container.NewHBox(s.refreshButton, s.exportButton),
+		container.NewHBox(s.refreshButton, s.exportButton, s.importButton),
 		nil,
 		filterBar,
 	)

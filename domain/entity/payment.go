@@ -22,6 +22,9 @@ type Payment struct {
 	ReceiptNumber *string // Номер квитанції/документа
 	Notes         *string
 
+	// Зв'язок з контрагентом (для вхідних платежів від третіх осіб/орендарів/інших)
+	ContractorID *int64
+
 	// Затвердження (контроль бухгалтера/голови)
 	ApprovedBy *int64
 	ApprovedAt *time.Time
@@ -53,6 +56,7 @@ var (
 	ErrPaymentPeriodInvalid     = errors.New("invalid period (month must be 1-12, year must be realistic)")
 	ErrPaymentAlreadyApproved   = errors.New("payment is already approved")
 	ErrPaymentNotApproved       = errors.New("payment is not approved")
+	ErrPaymentSourceRequired    = errors.New("payment must have either OwnershipShareID or ContractorID")
 )
 
 // NewPayment створює новий платіж з валідацією.
@@ -82,8 +86,9 @@ func NewPayment(
 
 // Validate перевіряє коректність даних платежу.
 func (p *Payment) Validate() error {
-	if p.OwnershipShareID <= 0 {
-		return ErrPaymentOwnershipRequired
+	// Must have either OwnershipShareID OR ContractorID
+	if p.OwnershipShareID <= 0 && p.ContractorID == nil {
+		return ErrPaymentSourceRequired
 	}
 
 	if p.Amount <= 0 {

@@ -130,7 +130,7 @@ func ShowMainScreen(
 			Icon:       theme.DocumentSaveIcon(),
 			Permission: "payments.read", // Використовуємо той самий дозвіл як для платежів
 			ScreenFunc: func() fyne.CanvasObject {
-				return NewCashFlowScreen(window, services.CashFlowService, authManager).Render()
+				return NewCashFlowScreen(window, services.CashFlowService, services.ImportService, authManager).Render()
 			},
 		},
 		{
