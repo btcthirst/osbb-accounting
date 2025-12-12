@@ -140,6 +140,7 @@ func Initialize(cfg *config.Config) (*App, error) {
 		chargeRepo,
 		paymentRepo,
 		expenseRepo,
+		contractorPaymentRepo,
 		contractorRepo,
 		expenseCategoryRepo,
 	)

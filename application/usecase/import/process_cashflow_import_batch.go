@@ -3,6 +3,7 @@ package importusecase
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"osbb-accounting/domain/entity"
@@ -10,29 +11,38 @@ import (
 )
 
 type ProcessCashFlowImportBatchUseCase struct {
-	batchRepo           repository.ImportBatchRepository
-	cashFlowRepo        repository.ImportedCashFlowRecordRepository
-	paymentRepo         repository.PaymentRepository
-	expenseRepo         repository.ExpenseRepository
-	contractorRepo      repository.ContractorRepository
-	expenseCategoryRepo repository.ExpenseCategoryRepository
+	batchRepo             repository.ImportBatchRepository
+	cashFlowRepo          repository.ImportedCashFlowRecordRepository
+	paymentRepo           repository.PaymentRepository
+	contractorPaymentRepo repository.ContractorPaymentRepository
+	expenseRepo           repository.ExpenseRepository
+	contractorRepo        repository.ContractorRepository
+	expenseCategoryRepo   repository.ExpenseCategoryRepository
+	ownershipRepo         repository.OwnershipShareRepository
+	ownerRepo             repository.OwnerRepository
 }
 
 func NewProcessCashFlowImportBatchUseCase(
 	batchRepo repository.ImportBatchRepository,
 	cashFlowRepo repository.ImportedCashFlowRecordRepository,
 	paymentRepo repository.PaymentRepository,
+	contractorPaymentRepo repository.ContractorPaymentRepository,
 	expenseRepo repository.ExpenseRepository,
 	contractorRepo repository.ContractorRepository,
 	expenseCategoryRepo repository.ExpenseCategoryRepository,
+	ownershipRepo repository.OwnershipShareRepository,
+	ownerRepo repository.OwnerRepository,
 ) *ProcessCashFlowImportBatchUseCase {
 	return &ProcessCashFlowImportBatchUseCase{
-		batchRepo:           batchRepo,
-		cashFlowRepo:        cashFlowRepo,
-		paymentRepo:         paymentRepo,
-		expenseRepo:         expenseRepo,
-		contractorRepo:      contractorRepo,
-		expenseCategoryRepo: expenseCategoryRepo,
+		batchRepo:             batchRepo,
+		cashFlowRepo:          cashFlowRepo,
+		paymentRepo:           paymentRepo,
+		contractorPaymentRepo: contractorPaymentRepo,
+		expenseRepo:           expenseRepo,
+		contractorRepo:        contractorRepo,
+		expenseCategoryRepo:   expenseCategoryRepo,
+		ownershipRepo:         ownershipRepo,
+		ownerRepo:             ownerRepo,
 	}
 }
 
@@ -94,18 +104,40 @@ func (uc *ProcessCashFlowImportBatchUseCase) processRecord(ctx context.Context, 
 	}
 
 	if record.OperationType == entity.CashFlowOperationDebit {
-		// Create Payment (Income)
-		payment := &entity.Payment{
-			Amount:        record.Amount,
-			PaymentDate:   record.Date,
-			Notes:         &record.Description,
-			ContractorID:  &contractor.ID,
-			PaymentMethod: entity.PaymentMethodBankTransfer,
-			CreatedAt:     time.Now(),
-			UpdatedAt:     time.Now(),
-		}
-		if err := uc.paymentRepo.Create(ctx, payment); err != nil {
-			return fmt.Errorf("failed to create payment: %w", err)
+		// Create Payment (Income) or ContractorPayment
+		// Find ownership share by contractor name
+		ownershipShare, err := uc.findOwnershipShareByName(ctx, record.ContractorName)
+
+		if err == nil && ownershipShare != nil {
+			// Found ownership share - create regular Payment (from apartment owner)
+			payment := &entity.Payment{
+				OwnershipShareID: ownershipShare.ID,
+				Amount:           record.Amount,
+				PaymentDate:      record.Date,
+				Notes:            &record.Description,
+				ContractorID:     &contractor.ID,
+				PaymentMethod:    entity.PaymentMethodBankTransfer,
+				CreatedAt:        time.Now(),
+				UpdatedAt:        time.Now(),
+			}
+			if err := uc.paymentRepo.Create(ctx, payment); err != nil {
+				return fmt.Errorf("failed to create payment: %w", err)
+			}
+		} else {
+			// No ownership share found - create ContractorPayment (from business contractor)
+			contractorPayment := &entity.ContractorPayment{
+				ContractorID:  contractor.ID,
+				Amount:        record.Amount,
+				PaymentDate:   record.Date,
+				PaymentMethod: entity.PaymentMethodBankTransfer,
+				Purpose:       record.Description,
+				Notes:         &record.Description,
+				CreatedAt:     time.Now(),
+				UpdatedAt:     time.Now(),
+			}
+			if err := uc.contractorPaymentRepo.Create(ctx, contractorPayment); err != nil {
+				return fmt.Errorf("failed to create contractor payment: %w", err)
+			}
 		}
 
 	} else if record.OperationType == entity.CashFlowOperationCredit {
@@ -118,13 +150,15 @@ func (uc *ProcessCashFlowImportBatchUseCase) processRecord(ctx context.Context, 
 		}
 
 		expense := &entity.Expense{
-			Amount:       record.Amount,
-			ExpenseDate:  record.Date,
-			Description:  record.Description,
-			ContractorID: &contractor.ID,
-			CategoryID:   category.ID,
-			CreatedAt:    time.Now(),
-			UpdatedAt:    time.Now(),
+			Amount:        record.Amount,
+			ExpenseDate:   record.Date,
+			Description:   record.Description,
+			ContractorID:  &contractor.ID,
+			CategoryID:    category.ID,
+			PaymentStatus: entity.PaymentStatusPending,
+			PaidAmount:    0,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
 		}
 		if err := uc.expenseRepo.Create(ctx, expense); err != nil {
 			return fmt.Errorf("failed to create expense: %w", err)
@@ -188,4 +222,34 @@ func (uc *ProcessCashFlowImportBatchUseCase) getCategoryByCode(ctx context.Conte
 		return nil, err
 	}
 	return newCategory, nil
+}
+
+// findOwnershipShareByName tries to find an ownership share by matching the owner's last name
+func (uc *ProcessCashFlowImportBatchUseCase) findOwnershipShareByName(ctx context.Context, contractorName string) (*entity.OwnershipShare, error) {
+	// Get all ownership shares
+	shares, err := uc.ownershipRepo.List(ctx, repository.OwnershipShareFilter{
+		Limit: 10000, // Get all shares
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to match by owner's last name (case-insensitive)
+	contractorNameUpper := strings.ToUpper(strings.TrimSpace(contractorName))
+
+	for _, share := range shares {
+		owner, err := uc.ownerRepo.GetByID(ctx, share.OwnerID)
+		if err != nil || owner == nil {
+			continue
+		}
+
+		ownerLastNameUpper := strings.ToUpper(owner.LastName)
+
+		// Match if contractor name contains or equals owner's last name
+		if ownerLastNameUpper == contractorNameUpper || strings.Contains(contractorNameUpper, ownerLastNameUpper) {
+			return share, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no ownership share found for contractor: %s", contractorName)
 }

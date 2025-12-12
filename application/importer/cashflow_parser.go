@@ -266,7 +266,6 @@ func (p *CashFlowXLSXParser) parseFloat(value string) float64 {
 	if value == "" {
 		return 0
 	}
-	fmt.Println("value in parseFloat", value)
 	// In this specific file format, it seems:
 	// - Comma (.) is the decimal separator.
 	// - Dot (,) is the thousand separator (or garbage).
